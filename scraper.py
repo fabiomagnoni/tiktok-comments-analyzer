@@ -1,10 +1,9 @@
 """
 TikTok Comments Scraper - API direta (sem Playwright).
-Extrai comentários via API web do TikTok com paginação completa.
+Extrai comentários + respostas aninhadas via API web do TikTok.
 Fallback para dados mock quando a API falha.
 """
 import json
-import os
 import re
 import time
 from datetime import datetime
@@ -51,14 +50,49 @@ class TikTokScraper:
 
             console.print(f"[blue]🎬[/blue] Video ID: {video_id}")
 
-            # 3. Buscar informações do vídeo
+            # 3. Buscar informações do vídeo (likes, favoritos, etc.)
             self._get_video_info(video_id)
 
             # 4. Buscar todos os comentários com paginação
-            self.comments = self._fetch_all_comments(video_id)
+            top_comments = self._fetch_all_top_comments(video_id)
 
             console.print(
-                f"[green]✓[/green] {len(self.comments)} comentários extraídos!"
+                f"[blue]📄[/blue] {len(top_comments)} comentários de nível 1"
+            )
+
+            # 5. Buscar respostas aninhadas (replies) para cada comentário
+            all_comments = []
+            for i, comment in enumerate(top_comments):
+                all_comments.append(comment)
+
+                reply_count = comment.get("replies_count", 0) or \
+                             comment.get("_reply_total", 0)
+                if reply_count > 0:
+                    try:
+                        replies = self._fetch_replies(
+                            video_id, comment["_comment_id"]
+                        )
+                        all_comments.extend(replies)
+                        console.print(
+                            f"[blue]💬[/blue] Comentário {i+1}: "
+                            f"{len(replies)} respostas extraídas"
+                        )
+                    except Exception as e:
+                        console.print(
+                            f"[yellow]⚠[/yellow] Erro ao buscar replies "
+                            f"do comentário {i+1}: {e}"
+                        )
+
+            # Limpa campos internos antes de retornar
+            for c in all_comments:
+                c.pop("_comment_id", None)
+                c.pop("_reply_total", None)
+
+            self.comments = all_comments
+
+            console.print(
+                f"[green]✓[/green] {len(self.comments)} comentários "
+                f"extraídos (incluindo respostas)!"
             )
 
         except Exception as e:
@@ -117,12 +151,10 @@ class TikTokScraper:
     @staticmethod
     def _extract_video_id(url: str) -> Optional[str]:
         """Extrai o video ID de uma URL do TikTok."""
-        # Padrão: /@user/video/VIDEO_ID
         match = re.search(r"/video/(\d+)", url)
         if match:
             return match.group(1)
 
-        # Padrão alternativo: ?id=VIDEO_ID ou &id=VIDEO_ID
         match = re.search(r"[?&]id=(\d+)", url)
         if match:
             return match.group(1)
@@ -130,35 +162,51 @@ class TikTokScraper:
         return None
 
     # ------------------------------------------------------------------
-    # Video Info
+    # Video Info (likes, favoritos, etc.)
     # ------------------------------------------------------------------
     def _get_video_info(self, video_id: str):
-        """Busca informações básicas do vídeo."""
+        """Busca informações do vídeo via API de detalhes."""
         try:
             headers = self._build_headers()
-            url = f"https://www.tiktok.com/oembed?url=https://www.tiktok.com/@placeholder/video/{video_id}"
+            url = (
+                "https://www.tiktok.com/api/item/detail/"
+                f"?aid=1988&item_id={video_id}"
+            )
 
-            resp = self.session.get(url, headers=headers, timeout=15)
+            resp = self.session.get(url, headers=headers, timeout=20)
             if resp.status_code == 200:
                 data = resp.json()
+                detail = data.get("aweme_detail", {}) or {}
+
+                # Estatísticas do vídeo
+                stats = detail.get("statistics", {}) or {}
                 self.video_info.update({
-                    "title": data.get("title", ""),
-                    "author_name": data.get("author_name", ""),
-                    "description": data.get("title", ""),
+                    "likes": stats.get("digg_count", 0),
+                    "comments": stats.get("comment_count", 0),
+                    "shares": stats.get("share_count", 0),
+                    "favorites": stats.get("collect_count", 0),
+                    "plays": stats.get("play_count", 0),
+                })
+
+                # Info do autor e descrição
+                author = detail.get("author", {}) or {}
+                self.video_info.update({
+                    "title": detail.get("desc", ""),
+                    "author_name": author.get("nickname", ""),
+                    "author_unique_id": author.get("unique_id", ""),
                 })
 
         except Exception:
-            # Não é crítico, continua sem video info
-            pass
+            pass  # Não é crítico, continua sem video info
 
     # ------------------------------------------------------------------
-    # Comentários (API direta com paginação)
+    # Comentários de nível 1 (top-level) com paginação
     # ------------------------------------------------------------------
-    def _fetch_all_comments(self, video_id: str) -> List[Dict[str, Any]]:
-        """Busca todos os comentários usando a API do TikTok."""
+    def _fetch_all_top_comments(self, video_id: str) -> List[Dict[str, Any]]:
+        """Busca todos os comentários de nível 1 usando a API do TikTok."""
         all_comments = []
         cursor = 0
-        max_pages = 50  # limite de segurança
+        max_pages = 50
 
         for page in range(max_pages):
             try:
@@ -170,7 +218,7 @@ class TikTokScraper:
                 console.print(
                     f"[blue]📄[/blue] Página {page + 1}: "
                     f"{len(comments_page)} comentários "
-                    f"(total: {len(all_comments)})"
+                    f"(total nível 1: {len(all_comments)})"
                 )
 
                 # Verifica se há mais páginas
@@ -195,7 +243,7 @@ class TikTokScraper:
             except Exception as e:
                 console.print(f"[red]✗[/red] Erro na página {page + 1}: {e}")
                 if page == 0:
-                    break  # falha na primeira página = aborta
+                    break
                 time.sleep(3)
                 continue
 
@@ -205,7 +253,7 @@ class TikTokScraper:
         """Busca uma página de comentários."""
         headers = self._build_headers()
 
-        # Endpoint da API web do TikTok para comentários
+        # Endpoint principal da API web do TikTok para comentários
         url = (
             f"https://www.tiktok.com/api/comment/list/online/"
             f"?aid=1988&aweme_id={video_id}&count=30"
@@ -230,8 +278,7 @@ class TikTokScraper:
         try:
             data = resp.json()
         except json.JSONDecodeError:
-            # Se não for JSON, tenta extrair do HTML (caso de redirect)
-            return self._try_html_extraction(video_id)
+            return []
 
         self._last_response = data
 
@@ -248,54 +295,79 @@ class TikTokScraper:
 
         return comments
 
-    def _try_html_extraction(self, video_id: str) -> List[Dict[str, Any]]:
-        """Fallback: tenta extrair comentários do endpoint de detalhes."""
-        try:
-            headers = self._build_headers()
-            video_url = (
-                "https://www.tiktok.com/api/item/detail/"
-                f"?aid=1988&item_id={video_id}"
-            )
-            resp = self.session.get(video_url, headers=headers, timeout=20)
+    # ------------------------------------------------------------------
+    # Respostas aninhadas (replies) - endpoint separado!
+    # ------------------------------------------------------------------
+    def _fetch_replies(self, video_id: str, comment_id: str) -> List[Dict[str, Any]]:
+        """Busca as respostas de um comentário específico.
 
-            if resp.status_code == 200:
-                data = resp.json()
-                # Extrai comentários se disponíveis no detail endpoint
-                comment_list = (
-                    data.get("aweme_detail", {})
-                    .get("comments", [])
+        Usa o endpoint /api/comment/list/reply/ que retorna apenas
+        as replies de um comentário pai.
+        """
+        all_replies = []
+        cursor = 0
+        max_pages = 20  # limite para replies por comentário
+
+        for page in range(max_pages):
+            try:
+                headers = self._build_headers()
+                url = (
+                    f"https://www.tiktok.com/api/comment/list/reply/"
+                    f"?aid=1988&comment_id={comment_id}"
+                    f"&count=30&cursor={cursor}"
+                    f"&item_id={video_id}"
                 )
 
-                comments = []
-                for item in comment_list:
-                    c = self._parse_comment_item(item)
-                    if c:
-                        comments.append(c)
-                return comments
+                resp = self.session.get(url, headers=headers, timeout=20)
 
-        except Exception:
-            pass
+                if resp.status_code != 200:
+                    break
 
-        return []
+                try:
+                    data = resp.json()
+                except json.JSONDecodeError:
+                    break
 
-    # ------------------------------------------------------------------
-    # Parsing
-    # ------------------------------------------------------------------
+                reply_list = data.get("comments", []) or \
+                            data.get("reply_comment", []) or []
+
+                for item in reply_list:
+                    r = self._parse_reply_item(item)
+                    if r:
+                        all_replies.append(r)
+
+                # Verifica se há mais páginas de replies
+                has_more = (
+                    data.get("hasMore", False) or
+                    data.get("has_more", False)
+                )
+
+                if not has_more or not reply_list:
+                    break
+
+                cursor += len(reply_list)
+                time.sleep(0.8)  # rate limit mais leve para replies
+
+            except Exception as e:
+                console.print(f"[yellow]⚠[/yellow] Erro ao buscar replies "
+                              f"(página {page + 1}): {e}")
+                break
+
+        return all_replies
+
     @staticmethod
-    def _parse_comment_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Extrai dados de um comentário da API."""
+    def _parse_reply_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Extrai dados de uma resposta (reply) da API."""
         if not isinstance(item, dict):
             return None
 
-        # Extrair texto com múltiplas estratégias (sem bug de precedência)
+        # Extrair texto com múltiplas estratégias
         text = ""
 
-        # Estratégia 1: campo direto 'text'
         val = item.get("text")
         if isinstance(val, str) and len(val.strip()) > 0:
             text = val.strip()
 
-        # Estratégia 2: objeto content com sub-campo text
         if not text:
             content = item.get("content")
             if isinstance(content, dict):
@@ -307,19 +379,94 @@ class TikTokScraper:
             elif isinstance(content, str) and len(content.strip()) > 0:
                 text = content.strip()
 
-        # Estratégia 3: campo desc
         if not text:
             val = item.get("desc")
             if isinstance(val, str) and len(val.strip()) > 0:
                 text = val.strip()
 
-        # Estratégia 4: campo comment_text
         if not text:
-            val = item.get("comment_text")
+            for key, val in item.items():
+                if (isinstance(val, str) and
+                        3 < len(val) < 2000 and
+                        not val.startswith("http") and
+                        not val.isdigit()):
+                    text = val.strip()
+                    break
+
+        if not text:
+            return None
+
+        # Likes
+        likes = 0
+        for key in ["digg_count", "like_count", "likes"]:
+            val = item.get(key)
+            if val is not None:
+                try:
+                    likes = int(val)
+                    break
+                except (ValueError, TypeError):
+                    continue
+
+        # Author
+        author = ""
+        user_data = item.get("user", {}) or {}
+        if isinstance(user_data, dict):
+            for key in ["unique_id", "nickname", "username"]:
+                val = user_data.get(key)
+                if isinstance(val, str) and val.strip():
+                    author = val.strip()
+                    break
+
+        # Date
+        date_raw = item.get("create_time", "") or ""
+        try:
+            ts = int(date_raw)
+            dt = datetime.fromtimestamp(ts)
+            date_str = dt.strftime("%d/%m/%Y %H:%M")
+        except (ValueError, TypeError):
+            date_str = str(date_raw)
+
+        return {
+            "text": text.strip(),
+            "likes": likes,
+            "replies_count": 0,  # replies não têm sub-replies neste nível
+            "author": author,
+            "date": date_str,
+            "_is_reply": True,  # marcação interna para debug
+        }
+
+    # ------------------------------------------------------------------
+    # Parsing de comentários de nível 1
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_comment_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Extrai dados de um comentário da API."""
+        if not isinstance(item, dict):
+            return None
+
+        # Extrair texto com múltiplas estratégias
+        text = ""
+
+        val = item.get("text")
+        if isinstance(val, str) and len(val.strip()) > 0:
+            text = val.strip()
+
+        if not text:
+            content = item.get("content")
+            if isinstance(content, dict):
+                for key in ["text", "content"]:
+                    val = content.get(key)
+                    if isinstance(val, str) and len(val.strip()) > 0:
+                        text = val.strip()
+                        break
+            elif isinstance(content, str) and len(content.strip()) > 0:
+                text = content.strip()
+
+        if not text:
+            val = item.get("desc")
             if isinstance(val, str) and len(val.strip()) > 0:
                 text = val.strip()
 
-        # Estratégia 5: fallback - qualquer string razoável
         if not text:
             for key, val in item.items():
                 if (isinstance(val, str) and
@@ -343,7 +490,7 @@ class TikTokScraper:
                 except (ValueError, TypeError):
                     continue
 
-        # Replies count
+        # Replies count - armazena em campo interno também para uso posterior
         replies = 0
         for key in ["reply_comment_total", "reply_count", "replies"]:
             val = item.get(key)
@@ -373,10 +520,15 @@ class TikTokScraper:
         except (ValueError, TypeError):
             date_str = str(date_raw)
 
+        # Salva o comment_id internamente para buscar replies depois
+        comment_id = item.get("cid", "") or ""
+
         return {
             "text": text.strip(),
             "likes": likes,
             "replies_count": replies,
+            "_reply_total": replies,  # cópia interna para uso no scraper
+            "_comment_id": comment_id,  # ID interno para buscar replies
             "author": author,
             "date": date_str,
         }
@@ -457,6 +609,12 @@ if __name__ == "__main__":
         if r["success"]:
             print(f"\nURL: {r['url']}")
             print(f"Comentários: {len(r['comments'])}")
+            vi = r.get("video_info", {})
+            if vi:
+                print(f"  ❤️ Likes do vídeo: {vi.get('likes', 'N/A')}")
+                print(f"  💬 Comentários: {vi.get('comments', 'N/A')}")
+                print(f"  🔖 Favoritos: {vi.get('favorites', 'N/A')}")
+                print(f"  🔄 Compartilhamentos: {vi.get('shares', 'N/A')}")
             for i, c in enumerate(r["comments"][:5], 1):
                 print(
                     f"  {i}. [{c.get('author', '?')}] "
