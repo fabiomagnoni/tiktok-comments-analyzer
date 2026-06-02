@@ -581,27 +581,31 @@ function renderDashboard(data) {
             <div class="video-stats-title">📱 Estatísticas do Vídeo</div>
             <div class="video-stats-grid">
                 ${typeof videoStats === 'object' && !Array.isArray(videoStats) ? `
+                    ${videoStats.likes !== undefined ? `
                     <div class="video-stat-item">
                         <div class="video-stat-icon">❤️</div>
                         <div class="video-stat-value">${fmt(videoStats.likes)}</div>
                         <div class="video-stat-label">Curtidas</div>
-                    </div>
+                    </div>` : ''}
+                    ${videoStats.comments !== undefined ? `
                     <div class="video-stat-item">
                         <div class="video-stat-icon">💬</div>
                         <div class="video-stat-value">${fmt(videoStats.comments)}</div>
                         <div class="video-stat-label">Comentários</div>
-                    </div>
+                    </div>` : ''}
+                    ${videoStats.shares !== undefined ? `
                     <div class="video-stat-item">
                         <div class="video-stat-icon">🔄</div>
                         <div class="video-stat-value">${fmt(videoStats.shares)}</div>
                         <div class="video-stat-label">Compartilhamentos</div>
-                    </div>
+                    </div>` : ''}
+                    ${videoStats.favorites !== undefined ? `
                     <div class="video-stat-item">
                         <div class="video-stat-icon">🔖</div>
                         <div class="video-stat-value">${fmt(videoStats.favorites)}</div>
                         <div class="video-stat-label">Favoritos</div>
-                    </div>
-                    ${videoStats.plays ? `
+                    </div>` : ''}
+                    ${videoStats.plays !== undefined ? `
                     <div class="video-stat-item">
                         <div class="video-stat-icon">▶️</div>
                         <div class="video-stat-value">${fmt(videoStats.plays)}</div>
@@ -614,26 +618,30 @@ function renderDashboard(data) {
                                 Vídeo ${i + 1}${vs.author_name ? ' — @' + vs.author_name : ''}
                             </h4>
                             <div class="video-stats-grid">
+                                ${vs.likes !== undefined ? `
                                 <div class="video-stat-item">
                                     <div class="video-stat-icon">❤️</div>
                                     <div class="video-stat-value">${fmt(vs.likes)}</div>
                                     <div class="video-stat-label">Curtidas</div>
-                                </div>
+                                </div>` : ''}
+                                ${vs.comments !== undefined ? `
                                 <div class="video-stat-item">
                                     <div class="video-stat-icon">💬</div>
                                     <div class="video-stat-value">${fmt(vs.comments)}</div>
                                     <div class="video-stat-label">Comentários</div>
-                                </div>
+                                </div>` : ''}
+                                ${vs.shares !== undefined ? `
                                 <div class="video-stat-item">
                                     <div class="video-stat-icon">🔄</div>
                                     <div class="video-stat-value">${fmt(vs.shares)}</div>
                                     <div class="video-stat-label">Compartilhamentos</div>
-                                </div>
+                                </div>` : ''}
+                                ${vs.favorites !== undefined ? `
                                 <div class="video-stat-item">
                                     <div class="video-stat-icon">🔖</div>
                                     <div class="video-stat-value">${fmt(vs.favorites)}</div>
                                     <div class="video-stat-label">Favoritos</div>
-                                </div>
+                                </div>` : ''}
                             </div>
                         </div>
                     `).join('')}
@@ -710,26 +718,30 @@ function renderDashboard(data) {
                     <!-- Video stats per video -->
                     ${v.video_info ? `
                     <div class="video-stats-grid" style="margin-bottom: 1rem;">
+                        ${v.video_info.likes !== undefined ? `
                         <div class="video-stat-item">
                             <div class="video-stat-icon">❤️</div>
                             <div class="video-stat-value">${fmt(v.video_info.likes)}</div>
                             <div class="video-stat-label">Curtidas</div>
-                        </div>
+                        </div>` : ''}
+                        ${v.video_info.comments !== undefined ? `
                         <div class="video-stat-item">
                             <div class="video-stat-icon">💬</div>
                             <div class="video-stat-value">${fmt(v.video_info.comments)}</div>
                             <div class="video-stat-label">Comentários</div>
-                        </div>
+                        </div>` : ''}
+                        ${v.video_info.shares !== undefined ? `
                         <div class="video-stat-item">
                             <div class="video-stat-icon">🔄</div>
                             <div class="video-stat-value">${fmt(v.video_info.shares)}</div>
                             <div class="video-stat-label">Compartilhamentos</div>
-                        </div>
+                        </div>` : ''}
+                        ${v.video_info.favorites !== undefined ? `
                         <div class="video-stat-item">
                             <div class="video-stat-icon">🔖</div>
                             <div class="video-stat-value">${fmt(v.video_info.favorites)}</div>
                             <div class="video-stat-label">Favoritos</div>
-                        </div>
+                        </div>` : ''}
                     </div>` : ''}
                     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
                         <div class="stat-card">
@@ -766,10 +778,10 @@ function renderDashboard(data) {
 
     document.getElementById('app').innerHTML = html;
 
-    // Render charts after DOM update
+    // Render charts after DOM update - PASSA OS TEXTOS COMO PARÂMETRO!
     requestAnimationFrame(() => {
         renderSentimentPie(data.sentiment_distribution);
-        renderLikesBar(topLikes);
+        renderLikesBar(topLikes);  // topLikes já tem text, author, likes
     });
 }
 
@@ -856,22 +868,27 @@ function renderSentimentPie(distribution) {
     });
 }
 
+// FIX: Usa os textos diretamente do dataset em vez de closure
 function renderLikesBar(topComments) {
     const ctx = document.getElementById('likesBar');
     if (!ctx) return;
 
-    const top10 = topComments.slice(0, 10);
+    const top10 = (topComments || []).slice(0, 10);
     const labels = top10.map((c, i) => `#${i + 1}`);
     const data = top10.map(c => c.likes || 0);
-    const colors = data.map(v => v > 0 ? '#fe2c55' : '#718096');
+    // Extrai os textos para usar no tooltip - garante que não é undefined
+    const texts = top10.map(c => (c.text || '').substring(0, 80));
 
     charts.likesBar = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
             datasets: [{
-                label: 'Likes', data, backgroundColor: colors,
-                borderRadius: 6, borderSkipped: false,
+                label: 'Likes',
+                data,
+                backgroundColor: '#fe2c55',
+                borderRadius: 6,
+                borderSkipped: false,
             }]
         },
         options: {
@@ -882,8 +899,13 @@ function renderLikesBar(topComments) {
                     backgroundColor: '#1a1a2e', titleColor: '#fff',
                     bodyColor: '#a0aec0', borderColor: '#2d3748', borderWidth: 1,
                     callbacks: {
+                        // Usa o array 'texts' que foi extraído antes - nunca undefined
                         afterTitle: function(context) {
-                            return top10[context.dataIndex]?.text?.substring(0, 60) + '...';
+                            const idx = context.dataIndex;
+                            return texts[idx] || '(sem texto)';
+                        },
+                        label: function(context) {
+                            return `❤️ Likes: ${context.parsed.x}`;
                         }
                     }
                 }
