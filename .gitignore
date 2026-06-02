@@ -4,6 +4,7 @@ __pycache__/
 .env
 venv/
 .venv/
+data/*.json
 static/*.png
 *.log
 .DS_Store
