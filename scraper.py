@@ -1,6 +1,8 @@
 """
-TikTok Comments Scraper using Playwright - Contorna WAF com navegador real
-Suporte a múltiplas URLs e extração robusta de comentários.
+TikTok Comments Scraper - Abordagem robusta com múltiplas estratégias de extração.
+1) Tenta extrair dados das variáveis JS internas do TikTok (SIGI_STATE, __UNIVERSAL_DATA_FOR_REHYDRATION__)
+2) Fallback: tenta seletores DOM
+3) Fallback: dump da página para debug
 """
 import asyncio
 import json
@@ -13,7 +15,7 @@ console = Console()
 
 
 class TikTokScraper:
-    """Scraper de comentários do TikTok usando Playwright."""
+    """Scraper de comentários do TikTok usando múltiplas estratégias."""
 
     def __init__(self, headless=True):
         self.headless = headless
@@ -21,7 +23,7 @@ class TikTokScraper:
         self.video_info = {}
 
     async def _setup_browser(self):
-        """Configura o navegador com headers realistas e anti-detecção."""
+        """Configura o navegador com anti-detecção máxima."""
         playwright = await async_playwright().start()
         browser = await playwright.chromium.launch(
             headless=self.headless,
@@ -30,6 +32,7 @@ class TikTokScraper:
                 '--no-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-web-security',
+                '--disable-features=IsolateOrigins,site-per-process',
             ]
         )
 
@@ -43,38 +46,335 @@ class TikTokScraper:
             locale='pt-BR',
         )
 
-        # Anti-detecção de automação
+        # Anti-detecção máxima
         await context.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
             window.chrome = {runtime: {}};
-            // Remove webdriver property from navigator
             delete navigator.__proto__.webdriver;
+            // Override plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5],
+            });
+            // Override languages
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['pt-BR', 'pt', 'en-US', 'en'],
+            });
         """)
 
         return playwright, browser, context
 
-    async def _wait_for_comments(self, page):
-        """Aguarda os comentários carregarem na página."""
-        selectors_to_try = [
-            '[data-e2e="comment-list"]',
-            '[class*="comment-list"]',
-            '[class*="comments"]',
-        ]
+    async def _extract_from_js_state(self, page):
+        """
+        Estratégia 1: Extrai dados das variáveis JavaScript internas do TikTok.
+        O TikTok armazena TODOS os dados em variáveis globais como:
+        - __UNIVERSAL_DATA_FOR_REHYDRATION__
+        - SIGI_STATE
+        - __INITIAL_STATE__
+        """
+        try:
+            # Extrai o estado completo da aplicação do TikTok
+            state = await page.evaluate("""
+                () => {
+                    const data = {};
 
-        for selector in selectors_to_try:
-            try:
-                await page.wait_for_selector(selector, timeout=15000)
-                console.print(f"[green]✓[/green] Comentários encontrados via '{selector}'")
-                return True
-            except PlaywrightTimeout:
+                    // Tenta múltiplas fontes de dados internos
+                    if (typeof __UNIVERSAL_DATA_FOR_REHYDRATION__ !== 'undefined') {
+                        data.universal = JSON.parse(JSON.stringify(__UNIVERSAL_DATA_FOR_REHYDRATION__));
+                    }
+
+                    if (typeof SIGI_STATE !== 'undefined') {
+                        try {
+                            data.sigi = JSON.parse(JSON.stringify(SIGI_STATE));
+                        } catch(e) {}
+                    }
+
+                    if (typeof __INITIAL_STATE__ !== 'undefined') {
+                        data.initial = JSON.parse(JSON.stringify(__INITIAL_STATE__));
+                    }
+
+                    // Tenta encontrar dados em qualquer variável global que contenha "comment" ou "Comment"
+                    for (const key in window) {
+                        try {
+                            if (typeof window[key] === 'object' && window[key] !== null) {
+                                const str = JSON.stringify(window[key]);
+                                if ((str.includes('comment') || str.includes('Comment')) && str.length < 500000) {
+                                    data['global_' + key.substring(0, 30)] = window[key];
+                                }
+                            }
+                        } catch(e) {}
+                    }
+
+                    return data;
+                }
+            """)
+
+            if state:
+                console.print("[green]✓[/green] Dados JS internos encontrados!")
+
+                # Salva o estado completo em arquivo para debug
+                os.makedirs('data', exist_ok=True)
+                with open('data/debug_state.json', 'w', encoding='utf-8') as f:
+                    json.dump(state, f, ensure_ascii=False, indent=2, default=str)
+                console.print("[blue]ℹ️[/blue] Estado completo salvo em data/debug_state.json")
+
+                # Processa os dados para extrair comentários
+                comments = self._parse_js_state(state)
+                if comments:
+                    return comments
+
+            return []
+
+        except Exception as e:
+            console.print(f"[yellow]⚠[/yellow] Erro ao extrair JS state: {e}")
+            return []
+
+    def _parse_js_state(self, state):
+        """Processa o estado JS do TikTok para extrair comentários."""
+        comments = []
+
+        # Função recursiva para buscar dados de comentário em objetos aninhados
+        def find_comments(obj, depth=0):
+            if depth > 15:
+                return []
+
+            found = []
+
+            if isinstance(obj, dict):
+                # Procura por chaves que contenham "comment" ou "Comment"
+                for key, value in obj.items():
+                    if 'comment' in key.lower() and isinstance(value, list) and len(value) > 0:
+                        found.extend(self._extract_comment_list(value))
+
+                    # Continua recursão em dicts e listas
+                    if isinstance(value, (dict, list)):
+                        found.extend(find_comments(value, depth + 1))
+
+            elif isinstance(obj, list):
+                for item in obj:
+                    if isinstance(item, (dict, list)):
+                        found.extend(find_comments(item, depth + 1))
+
+            return found
+
+        # Processa cada fonte de dados
+        for source_name, source_data in state.items():
+            extracted = find_comments(source_data)
+            if extracted:
+                console.print(f"[green]✓[/green] {len(extracted)} comentários encontrados em '{source_name}'")
+                comments.extend(extracted)
+
+        return comments
+
+    def _extract_comment_list(self, items):
+        """Extrai dados de uma lista de comentários."""
+        results = []
+
+        for item in items:
+            if not isinstance(item, dict):
                 continue
 
-        console.print("[yellow]⚠[/yellow] Nenhum seletor de comentários encontrado")
+            try:
+                # O TikTok armazena comentários com várias estruturas possíveis
+                text = (item.get('text') or
+                       item.get('content', {}).get('text', '') or
+                       item.get('desc', '') or
+                       str(item.get('comment_text', '')))
+
+                if not text or len(str(text)) < 1:
+                    continue
+
+                # Extrai autor
+                author = (item.get('user') or
+                        item.get('user_info', {}).get('unique_id', '') or
+                        item.get('author', {}).get('nickname', '') or
+                        str(item.get('username', '')))
+
+                if isinstance(author, dict):
+                    author = author.get('unique_id', author.get('nickname', ''))
+
+                # Extrai likes
+                likes = (int(item.get('digg_count', 0) or
+                          item.get('like_count', 0) or
+                          item.get('likes', 0)))
+
+                # Extrai respostas
+                replies = (int(item.get('reply_comment_total', 0) or
+                            item.get('replies', {}).get('total', 0) or
+                            item.get('reply_count', 0) or
+                            item.get('child_comments', {}).get('total', 0)))
+
+                # Extrai data
+                date = (item.get('create_time', '') or
+                       item.get('time', ''))
+
+                results.append({
+                    'text': str(text),
+                    'likes': likes,
+                    'replies_count': replies,
+                    'author': str(author) if author else '',
+                    'date': str(date) if date else '',
+                })
+
+            except Exception:
+                continue
+
+        return results
+
+    async def _extract_from_dom(self, page):
+        """Estratégia 2: Extrai dados do DOM via JavaScript."""
+        try:
+            raw = await page.evaluate("""
+                () => {
+                    const comments = [];
+
+                    // Tenta múltiplos seletores
+                    const selectors = [
+                        '[data-e2e="comment-list"] .comment-item',
+                        '[class*="comment-list"] [class*="item"]',
+                        '.comment-item',
+                        '[class*="CommentItem"]',
+                    ];
+
+                    let elements = [];
+                    for (const sel of selectors) {
+                        const found = document.querySelectorAll(sel);
+                        if (found.length > 0) {
+                            elements = found;
+                            break;
+                        }
+                    }
+
+                    if (elements.length === 0) return null;
+
+                    elements.forEach(el => {
+                        try {
+                            // Extrai todo o texto do elemento e seus filhos
+                            const allText = el.innerText?.trim() || '';
+                            if (!allText) return;
+
+                            // Tenta extrair texto principal (primeiro parágrafo/texto significativo)
+                            let textEl = el.querySelector('p, span, [class*="text"], .text');
+                            let text = textEl ? textEl.textContent?.trim() : allText.split('\\n')[0];
+
+                            if (!text || text.length < 2) return;
+
+                            // Extrai números (likes e replies) do texto
+                            const numbers = allText.match(/\\d+/g) || [];
+
+                            comments.push({
+                                text: text.substring(0, 500),
+                                likes: parseInt(numbers[0]) || 0,
+                                replies_count: parseInt(numbers[1]) || 0,
+                                author: '',
+                                date: '',
+                            });
+                        } catch(e) {}
+                    });
+
+                    return comments;
+                }
+            """)
+
+            if raw and len(raw) > 0:
+                console.print(f"[green]✓[/green] {len(raw)} comentários extraídos do DOM")
+                return raw
+
+        except Exception as e:
+            console.print(f"[yellow]⚠[/yellow] Erro ao extrair do DOM: {e}")
+
+        return []
+
+    async def _dump_page_for_debug(self, page):
+        """Salva o HTML da página para debug."""
+        os.makedirs('data', exist_ok=True)
+        try:
+            html = await page.content()
+            with open('data/debug_page.html', 'w', encoding='utf-8') as f:
+                f.write(html[:500000])  # Limita o tamanho
+            console.print("[blue]ℹ️[/blue] HTML da página salvo em data/debug_page.html")
+
+            # Salva também um resumo dos elementos encontrados
+            summary = await page.evaluate("""
+                () => {
+                    const info = {};
+                    // Conta elementos por classe que contenha "comment"
+                    const allElements = document.querySelectorAll('*');
+                    const commentRelated = [];
+                    allElements.forEach(el => {
+                        if (el.className && typeof el.className === 'string' &&
+                            el.className.toLowerCase().includes('comment')) {
+                            commentRelated.push({
+                                tag: el.tagName,
+                                class: el.className.substring(0, 100),
+                                text: (el.textContent || '').substring(0, 200)
+                            });
+                        }
+                    });
+                    info.comment_elements = commentRelated.slice(0, 50);
+
+                    // Lista variáveis globais
+                    const globals = [];
+                    for (const key in window) {
+                        if (key.startsWith('__') || key.includes('STATE') || key.includes('DATA')) {
+                            try {
+                                globals.push({
+                                    name: key,
+                                    type: typeof window[key],
+                                    size: JSON.stringify(window[key]).length
+                                });
+                            } catch(e) {}
+                        }
+                    }
+                    info.global_vars = globals;
+
+                    return info;
+                }
+            """)
+
+            with open('data/debug_summary.json', 'w', encoding='utf-8') as f:
+                json.dump(summary, f, ensure_ascii=False, indent=2, default=str)
+            console.print("[blue]ℹ️[/blue] Resumo salvo em data/debug_summary.json")
+
+        except Exception as e:
+            console.print(f"[yellow]⚠[/yellow] Erro ao salvar debug: {e}")
+
+    async def _wait_for_page_load(self, page):
+        """Aguarda a página carregar completamente."""
+        # Espera por network idle
+        try:
+            await page.wait_for_load_state('networkidle', timeout=30000)
+        except PlaywrightTimeout:
+            pass
+
+        # Aguarda um tempo extra para JS processar
+        await asyncio.sleep(5)
+
+    async def _click_comments_button(self, page):
+        """Tenta clicar no botão de comentários."""
+        selectors = [
+            '[data-e2e="comment-button"]',
+            '[class*="comment-button"]',
+            'button[aria-label*="comentário"]',
+            'button[aria-label*="Comentário"]',
+            'button[aria-label*="comment"]',
+        ]
+
+        for sel in selectors:
+            try:
+                btn = page.locator(sel)
+                if await btn.count() > 0:
+                    console.print(f"[blue]💬[/blue] Clicando no botão de comentários ({sel})...")
+                    await btn.click()
+                    await asyncio.sleep(3)
+                    return True
+            except Exception:
+                continue
+
         return False
 
     async def _scroll_comments(self, page):
-        """Rola a página para carregar mais comentários via lazy loading."""
-        max_scrolls = 20
+        """Rola a página para carregar mais comentários."""
+        max_scrolls = 25
         no_change_count = 0
 
         for i in range(max_scrolls):
@@ -88,7 +388,6 @@ class TikTokScraper:
 
                 last_height = await comment_container.evaluate('el => el.scrollHeight')
 
-                # Rola para baixo em incrementos
                 for _ in range(3):
                     await comment_container.evaluate('el => el.scrollTop += 600')
                     await asyncio.sleep(random.uniform(0.5, 1.5))
@@ -102,184 +401,11 @@ class TikTokScraper:
                         return True
                 else:
                     no_change_count = 0
-                    console.print(f"[blue]↻[/blue] Scroll {i+1}: carregando mais...")
 
             except Exception as e:
-                console.print(f"[yellow]⚠[/yellow] Erro ao rolar (scroll {i}): {e}")
                 break
 
         return True
-
-    async def _extract_comments(self, page):
-        """Extrai os comentários do DOM via JavaScript no navegador."""
-        comments_data = []
-
-        try:
-            raw_comments = await page.evaluate("""
-                () => {
-                    const comments = [];
-
-                    // Tenta múltiplos seletores para encontrar os comentários
-                    let commentElements;
-                    if (document.querySelectorAll('[data-e2e="comment-list"] .comment-item').length > 0) {
-                        commentElements = document.querySelectorAll('[data-e2e="comment-list"] .comment-item');
-                    } else if (document.querySelectorAll('[class*="comment-list"] [class*="item"]').length > 0) {
-                        commentElements = document.querySelectorAll('[class*="comment-list"] [class*="item"]');
-                    } else {
-                        // Fallback: tenta encontrar qualquer elemento com texto de comentário
-                        const allSpans = document.querySelectorAll('span, p, div');
-                        return []; // Não encontrou estrutura conhecida
-                    }
-
-                    commentElements.forEach(el => {
-                        try {
-                            // Extrai texto do comentário
-                            let textEl = el.querySelector(
-                                '[data-e2e="comment-text"], [class*="comment-text"], ' +
-                                '.text, p, span'
-                            );
-                            let text = '';
-                            if (textEl) text = textEl.textContent?.trim() || '';
-
-                            // Extrai likes do comentário
-                            let likeEl = el.querySelector(
-                                '[data-e2e="like-count"], [class*="like"], .count, ' +
-                                '[class*="likes"]'
-                            );
-                            let likes = 0;
-                            if (likeEl) {
-                                const likeText = likeEl.textContent?.trim() || '0';
-                                const numMatch = likeText.match(/([\d.]+)([KMkm]?)?/);
-                                if (numMatch) {
-                                    let num = parseFloat(numMatch[1]);
-                                    const suffix = numMatch[2]?.toUpperCase();
-                                    if (suffix === 'K') num *= 1000;
-                                    else if (suffix === 'M') num *= 1000000;
-                                    likes = Math.round(num);
-                                }
-                            }
-
-                            // Extrai número de respostas
-                            let replyEl = el.querySelector(
-                                '[data-e2e="reply-count"], [class*="reply"]'
-                            );
-                            let replies = 0;
-                            if (replyEl) {
-                                const replyText = replyEl.textContent?.trim() || '0';
-                                const replyMatch = replyText.match(/([\d.]+)([KMkm]?)?/);
-                                if (replyMatch) {
-                                    let num = parseFloat(replyMatch[1]);
-                                    const suffix = replyMatch[2]?.toUpperCase();
-                                    if (suffix === 'K') num *= 1000;
-                                    else if (suffix === 'M') num *= 1000000;
-                                    replies = Math.round(num);
-                                }
-                            }
-
-                            // Extrai autor
-                            let authorEl = el.querySelector(
-                                '[data-e2e="comment-author"], [class*="author"], .username'
-                            );
-                            let author = '';
-                            if (authorEl) author = authorEl.textContent?.trim() || '';
-
-                            // Extrai data
-                            let dateEl = el.querySelector(
-                                '[data-e2e="comment-time"], [class*="time"]'
-                            );
-                            let date = '';
-                            if (dateEl) date = dateEl.textContent?.trim() || '';
-
-                            if (text && text.length > 0) {
-                                comments.push({
-                                    text: text,
-                                    likes: likes,
-                                    replies_count: replies,
-                                    author: author,
-                                    date: date,
-                                });
-                            }
-                        } catch(e) {}
-                    });
-
-                    return comments;
-                }
-            """)
-
-            if raw_comments:
-                console.print(f"[green]✓[/green] {len(raw_comments)} comentários extraídos")
-                comments_data.extend(raw_comments)
-            else:
-                # Fallback: tenta extrair texto de qualquer elemento visível na área de comentários
-                console.print("[yellow]⚠[/yellow] Nenhum comentário encontrado com seletor padrão, tentando fallback...")
-                fallback = await page.evaluate("""
-                    () => {
-                        const results = [];
-                        // Tenta encontrar textos em elementos dentro do container principal
-                        const allTexts = document.querySelectorAll('[data-e2e="comment-list"]');
-                        if (allTexts.length > 0) {
-                            allTexts.forEach(el => {
-                                const textNodes = el.querySelectorAll('span, p, div');
-                                textNodes.forEach(node => {
-                                    const t = node.textContent?.trim();
-                                    if (t && t.length > 3 && t.length < 500) {
-                                        results.push({text: t, likes: 0, replies_count: 0, author: '', date: ''});
-                                    }
-                                });
-                            });
-                        }
-                        return results;
-                    }
-                """)
-                if fallback:
-                    console.print(f"[green]✓[/green] {len(fallback)} comentários extraídos (fallback)")
-                    comments_data.extend(fallback)
-
-        except Exception as e:
-            console.print(f"[red]✗[/red] Erro ao extrair comentários: {e}")
-
-        return comments_data
-
-    async def _extract_video_info(self, page):
-        """Extrai informações do vídeo (likes, shares, descrição)."""
-        try:
-            video_data = await page.evaluate("""
-                () => {
-                    const info = {};
-
-                    // Likes do vídeo
-                    const likeBtn = document.querySelector('[data-e2e="like-button"]');
-                    if (likeBtn) {
-                        const countEl = likeBtn.querySelector('.count, [class*="count"]');
-                        if (countEl) info.likes = countEl.textContent?.trim() || '';
-                    }
-
-                    // Comentários do vídeo
-                    const commentBtn = document.querySelector('[data-e2e="comment-button"]');
-                    if (commentBtn) {
-                        const countEl = commentBtn.querySelector('.count, [class*="count"]');
-                        if (countEl) info.comment_count = countEl.textContent?.trim() || '';
-                    }
-
-                    // Shares do vídeo
-                    const shareBtn = document.querySelector('[data-e2e="share-button"]');
-                    if (shareBtn) {
-                        const countEl = shareBtn.querySelector('.count, [class*="count"]');
-                        if (countEl) info.shares = countEl.textContent?.trim() || '';
-                    }
-
-                    // Descrição do vídeo
-                    const descEl = document.querySelector(
-                        '[data-e2e="video-desc"], .desc, [class*="description"]'
-                    );
-                    if (descEl) info.description = descEl.textContent?.trim() || '';
-
-                    return info;
-                }
-            """)
-            self.video_info = video_data
-        except Exception as e:
-            console.print(f"[yellow]⚠[/yellow] Erro ao extrair info do vídeo: {e}")
 
     async def scrape(self, url):
         """Realiza o scraping completo de um vídeo TikTok."""
@@ -293,41 +419,49 @@ class TikTokScraper:
                 page = await context.new_page()
 
                 # Acessa a URL
-                response = await page.goto(url, wait_until='networkidle', timeout=60000)
+                response = await page.goto(url, wait_until='domcontentloaded', timeout=60000)
 
                 if not response.ok:
-                    console.print(f"[red]✗[/red] Erro HTTP {response.status} ao carregar página")
+                    console.print(f"[red]✗[/red] Erro HTTP {response.status}")
                     return [], {}
 
-                # Aguarda carregamento inicial
-                await asyncio.sleep(5)
+                # Aguarda carregamento completo
+                await self._wait_for_page_load(page)
 
-                # Tenta clicar no botão de comentários se necessário
-                try:
-                    comment_btn = page.locator('[data-e2e="comment-button"]')
-                    if await comment_btn.count() > 0:
-                        console.print("[blue]💬[/blue] Abrindo seção de comentários...")
-                        await comment_btn.click()
-                        await asyncio.sleep(3)
-                except Exception as e:
-                    console.print(f"[yellow]⚠[/yellow] Não foi possível clicar no botão: {e}")
+                # Estratégia 1: Extrai das variáveis JS internas (ANTES de clicar em comentários!)
+                console.print("[blue]📊[/blue] Tentando extrair dados do estado JS interno...")
+                js_comments = await self._extract_from_js_state(page)
 
-                # Aguarda comentários carregarem
-                if not await self._wait_for_comments(page):
-                    return [], {}
+                if js_comments:
+                    self.comments = js_comments
+                    console.print(f"[green]✓[/green] {len(js_comments)} comentários extraídos via JS state!")
+                else:
+                    # Se não encontrou no JS state, tenta clicar e carregar comentários
+                    await self._click_comments_button(page)
 
-                # Extrai info do vídeo
-                await self._extract_video_info(page)
+                    # Aguarda mais tempo após clicar
+                    await asyncio.sleep(5)
 
-                # Rola para carregar mais comentários
-                console.print("[blue]⬇️[/blue] Rolando para carregar mais comentários...")
-                await self._scroll_comments(page)
+                    # Tenta novamente o JS state após clicar
+                    console.print("[blue]📊[/blue] Tentando extrair dados do estado JS (2ª tentativa)...")
+                    js_comments = await self._extract_from_js_state(page)
 
-                # Aguarda mais um pouco após o último scroll
-                await asyncio.sleep(2)
+                    if js_comments:
+                        self.comments = js_comments
+                        console.print(f"[green]✓[/green] {len(js_comments)} comentários extraídos via JS state!")
+                    else:
+                        # Estratégia 2: Extrai do DOM
+                        console.print("[blue]📊[/blue] Tentando extrair dados do DOM...")
 
-                # Extrai os comentários
-                self.comments = await self._extract_comments(page)
+                        await self._scroll_comments(page)
+                        dom_comments = await self._extract_from_dom(page)
+
+                        if dom_comments:
+                            self.comments = dom_comments
+                        else:
+                            # Dump para debug
+                            console.print("[red]✗[/red] Nenhum comentário encontrado com nenhuma estratégia!")
+                            await self._dump_page_for_debug(page)
 
             except Exception as e:
                 console.print(f"[red]✗[/red] Erro durante o scraping: {e}")
@@ -344,7 +478,7 @@ class TikTokScraper:
 
 
 async def scrape_single_url(url):
-    """Scrapes uma única URL e retorna os resultados."""
+    """Scrapes uma única URL."""
     scraper = TikTokScraper(headless=True)
     comments, video_info = await scraper.scrape(url)
     return {
@@ -356,7 +490,7 @@ async def scrape_single_url(url):
 
 
 async def scrape_multiple_urls(urls):
-    """Scrapes múltiplas URLs e retorna todos os resultados."""
+    """Scrapes múltiplas URLs."""
     results = []
 
     for i, url in enumerate(urls, 1):
@@ -375,7 +509,6 @@ async def scrape_multiple_urls(urls):
         else:
             console.print(f"[red]✗[/red] Vídeo {i}: falha ao extrair comentários")
 
-        # Pequena pausa entre URLs para não sobrecarregar
         if i < len(urls):
             await asyncio.sleep(3)
 
