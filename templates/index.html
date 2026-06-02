@@ -127,6 +127,23 @@
 
         .btn-scrape:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+        .btn-mock {
+            background: linear-gradient(135deg, var(--accent-cyan), #0ea5e9);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-mock:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(37, 244, 238, 0.4);
+        }
+
         /* Main Content */
         .main {
             max-width: 1400px;
@@ -377,6 +394,8 @@
                        placeholder="URL do vídeo TikTok..."
                        value="https://www.tiktok.com/@ricaperrone/video/7645152910459915541">
                 <button class="btn-scrape" id="scrapeBtn" onclick="startScraping()">🔍 Analisar</button>
+                <!-- Botão de teste com dados mock -->
+                <button class="btn-mock" onclick="loadMockData()">⚡ Teste Rápido (Mock)</button>
             </div>
         </div>
     </header>
@@ -389,6 +408,8 @@
             <p class="welcome-desc">
                 Cole a URL de um vídeo do TikTok e clique em "Analisar" para extrair
                 todos os comentários, realizar análise de sentimento e gerar visualizações.
+                <br><br>
+                Ou use o botão <strong>"Teste Rápido"</strong> para ver o dashboard com dados simulados.
             </p>
         </div>
     </main>
@@ -406,7 +427,7 @@
             const url = document.getElementById('urlInput').value.trim();
             if (!url) return alert('Por favor, insira uma URL do TikTok');
 
-            showLoading();
+            showLoading('🔍 Scraping comentários do TikTok...');
             const btn = document.getElementById('scrapeBtn');
             btn.disabled = true;
 
@@ -432,13 +453,33 @@
         }
 
         // ============================================
+        // Mock Data Test
+        // ============================================
+        async function loadMockData() {
+            showLoading('⚡ Carregando dados simulados...');
+
+            try {
+                const response = await fetch('/api/mock');
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    renderDashboard(result.data);
+                } else {
+                    showError(result.message || 'Erro ao carregar dados mock');
+                }
+            } catch (err) {
+                showError('Erro de conexão: ' + err.message);
+            }
+        }
+
+        // ============================================
         // UI States
         // ============================================
-        function showLoading() {
+        function showLoading(text = '🔍 Scraping comentários do TikTok...') {
             document.getElementById('app').innerHTML = `
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p class="loading-text">🔍 Scraping comentários do TikTok...</p>
+                    <p class="loading-text">${text}</p>
                     <p style="color: var(--text-muted); font-size: 0.85rem;">
                         Isso pode levar até 2 minutos
                     </p>
