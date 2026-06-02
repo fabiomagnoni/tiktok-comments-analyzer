@@ -7,6 +7,7 @@ import json
 import os
 import re
 import time
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 import requests
@@ -175,12 +176,13 @@ class TikTokScraper:
                 # Verifica se há mais páginas
                 has_more = False
                 try:
-                    # Tenta extrair hasMore da resposta
                     if hasattr(self, '_last_response'):
                         resp_data = self._last_response
                         if isinstance(resp_data, dict):
-                            has_more = resp_data.get("hasMore", False) or \
-                                      resp_data.get("has_more", False)
+                            has_more = (
+                                resp_data.get("hasMore", False) or
+                                resp_data.get("has_more", False)
+                            )
                 except Exception:
                     pass
 
@@ -247,12 +249,9 @@ class TikTokScraper:
         return comments
 
     def _try_html_extraction(self, video_id: str) -> List[Dict[str, Any]]:
-        """Fallback: tenta extrair comentários do HTML da página."""
+        """Fallback: tenta extrair comentários do endpoint de detalhes."""
         try:
             headers = self._build_headers()
-            url = f"https://www.tiktok.com/oembed?url=https://www.tiktok.com/@placeholder/video/{video_id}"
-
-            # Visita a página do vídeo diretamente
             video_url = (
                 "https://www.tiktok.com/api/item/detail/"
                 f"?aid=1988&item_id={video_id}"
@@ -288,16 +287,49 @@ class TikTokScraper:
         if not isinstance(item, dict):
             return None
 
-        text = (
-            item.get("text", "") or
-            item.get("content", {}).get("text", "") if isinstance(
-                item.get("content"), dict) else "" or
-            item.get("desc", "") or
-            item.get("comment_text", "") or
-            ""
-        )
+        # Extrair texto com múltiplas estratégias (sem bug de precedência)
+        text = ""
 
-        if not text or len(str(text).strip()) < 1:
+        # Estratégia 1: campo direto 'text'
+        val = item.get("text")
+        if isinstance(val, str) and len(val.strip()) > 0:
+            text = val.strip()
+
+        # Estratégia 2: objeto content com sub-campo text
+        if not text:
+            content = item.get("content")
+            if isinstance(content, dict):
+                for key in ["text", "content"]:
+                    val = content.get(key)
+                    if isinstance(val, str) and len(val.strip()) > 0:
+                        text = val.strip()
+                        break
+            elif isinstance(content, str) and len(content.strip()) > 0:
+                text = content.strip()
+
+        # Estratégia 3: campo desc
+        if not text:
+            val = item.get("desc")
+            if isinstance(val, str) and len(val.strip()) > 0:
+                text = val.strip()
+
+        # Estratégia 4: campo comment_text
+        if not text:
+            val = item.get("comment_text")
+            if isinstance(val, str) and len(val.strip()) > 0:
+                text = val.strip()
+
+        # Estratégia 5: fallback - qualquer string razoável
+        if not text:
+            for key, val in item.items():
+                if (isinstance(val, str) and
+                        3 < len(val) < 2000 and
+                        not val.startswith("http") and
+                        not val.isdigit()):
+                    text = val.strip()
+                    break
+
+        if not text:
             return None
 
         # Likes (digg_count é o campo padrão da API do TikTok)
@@ -335,7 +367,6 @@ class TikTokScraper:
         # Date / create_time
         date_raw = item.get("create_time", "") or ""
         try:
-            from datetime import datetime
             ts = int(date_raw)
             dt = datetime.fromtimestamp(ts)
             date_str = dt.strftime("%d/%m/%Y %H:%M")
@@ -343,7 +374,7 @@ class TikTokScraper:
             date_str = str(date_raw)
 
         return {
-            "text": str(text).strip(),
+            "text": text.strip(),
             "likes": likes,
             "replies_count": replies,
             "author": author,
