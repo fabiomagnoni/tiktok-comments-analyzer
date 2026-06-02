@@ -87,6 +87,7 @@ class TikTokScraper:
             for c in all_comments:
                 c.pop("_comment_id", None)
                 c.pop("_reply_total", None)
+                c.pop("_is_reply", None)
 
             self.comments = all_comments
 
@@ -162,10 +163,24 @@ class TikTokScraper:
         return None
 
     # ------------------------------------------------------------------
-    # Video Info (likes, favoritos, etc.)
+    # Video Info (likes, favoritos, etc.) - MÚLTIPLAS ESTRATÉGIAS
     # ------------------------------------------------------------------
     def _get_video_info(self, video_id: str):
-        """Busca informações do vídeo via API de detalhes."""
+        """Busca informações do vídeo via múltiplas estratégias."""
+
+        # Estratégia 1: API item/detail
+        self._try_api_item_detail(video_id)
+
+        # Estratégia 2: oembed (mais simples, menos dados mas confiável)
+        if not self.video_info.get("likes"):
+            self._try_oembed(video_id)
+
+        # Estratégia 3: extrair do HTML da página do vídeo
+        if not self.video_info.get("likes"):
+            self._try_html_extraction(video_id)
+
+    def _try_api_item_detail(self, video_id: str):
+        """Tenta obter stats via API item/detail."""
         try:
             headers = self._build_headers()
             url = (
@@ -174,30 +189,109 @@ class TikTokScraper:
             )
 
             resp = self.session.get(url, headers=headers, timeout=20)
-            if resp.status_code == 200:
-                data = resp.json()
-                detail = data.get("aweme_detail", {}) or {}
+            if resp.status_code != 200:
+                return
 
-                # Estatísticas do vídeo
-                stats = detail.get("statistics", {}) or {}
+            data = resp.json()
+
+            # A estrutura pode variar - tenta múltiplos caminhos
+            detail = (data.get("aweme_detail", {}) or
+                     data.get("itemInfo", {}).get("itemStruct", {}) or
+                     data.get("itemDetail", {}) or
+                     data)
+
+            stats = (detail.get("statistics", {}) or
+                    detail.get("stats", {}))
+
+            if stats:
                 self.video_info.update({
-                    "likes": stats.get("digg_count", 0),
-                    "comments": stats.get("comment_count", 0),
-                    "shares": stats.get("share_count", 0),
-                    "favorites": stats.get("collect_count", 0),
-                    "plays": stats.get("play_count", 0),
+                    "likes": int(stats.get("digg_count", 0) or 0),
+                    "comments": int(stats.get("comment_count", 0) or 0),
+                    "shares": int(stats.get("share_count", 0) or 0),
+                    "favorites": int(stats.get("collect_count", 0) or 0),
+                    "plays": int(stats.get("play_count", 0) or 0),
                 })
 
-                # Info do autor e descrição
-                author = detail.get("author", {}) or {}
-                self.video_info.update({
-                    "title": detail.get("desc", ""),
-                    "author_name": author.get("nickname", ""),
-                    "author_unique_id": author.get("unique_id", ""),
-                })
+            # Info do autor e descrição
+            author = detail.get("author", {}) or {}
+            self.video_info.update({
+                "title": detail.get("desc", "") or detail.get("description", ""),
+                "author_name": author.get("nickname", ""),
+                "author_unique_id": author.get("unique_id", ""),
+            })
 
         except Exception:
-            pass  # Não é crítico, continua sem video info
+            pass
+
+    def _try_oembed(self, video_id: str):
+        """Tenta obter stats via oembed API."""
+        try:
+            headers = self._build_headers()
+            url = f"https://www.tiktok.com/oembed?url=https://www.tiktok.com/@placeholder/video/{video_id}"
+
+            resp = self.session.get(url, headers=headers, timeout=15)
+            if resp.status_code == 200:
+                data = resp.json()
+                # oembed tem menos dados mas pode ter título e autor
+                if not self.video_info.get("title"):
+                    self.video_info["title"] = data.get("title", "")
+                if not self.video_info.get("author_name"):
+                    self.video_info["author_name"] = data.get("author_name", "")
+
+        except Exception:
+            pass
+
+    def _try_html_extraction(self, video_id: str):
+        """Tenta extrair stats do HTML da página do vídeo."""
+        try:
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8",
+            }
+
+            video_url = f"https://www.tiktok.com/@placeholder/video/{video_id}"
+            resp = self.session.get(video_url, headers=headers, timeout=20)
+
+            if resp.status_code != 200:
+                return
+
+            html = resp.text
+
+            # Extrai likes do HTML (aria-label="XXXX Curtidas")
+            likes_match = re.search(r'aria-label="(\d+)\s*Curtidas"', html)
+            if not likes_match:
+                likes_match = re.search(r'data-e2e="browse-like-count"[^>]*>(\d+)</strong>', html)
+            if likes_match and not self.video_info.get("likes"):
+                self.video_info["likes"] = int(likes_match.group(1))
+
+            # Extrai comentários do HTML (Comentários (XX))
+            comments_match = re.search(r'Comentários\s*\((\d+)\)', html)
+            if not comments_match:
+                comments_match = re.search(r'data-e2e="browse-comment-count"[^>]*>(\d+)</strong>', html)
+            if comments_match and not self.video_info.get("comments"):
+                self.video_info["comments"] = int(comments_match.group(1))
+
+            # Extrai compartilhamentos
+            shares_match = re.search(r'aria-label="(\d+)\s*Compartilhamento', html)
+            if not shares_match:
+                shares_match = re.search(r'data-e2e="browse-share-count"[^>]*>(\d+)</strong>', html)
+            if shares_match and not self.video_info.get("shares"):
+                self.video_info["shares"] = int(shares_match.group(1))
+
+            # Extrai favoritos
+            favs_match = re.search(r'aria-label="(\d+)\s*Favorito', html)
+            if not favs_match:
+                favs_match = re.search(r'data-e2e="browse-favorite-count"[^>]*>(\d+)</strong>', html)
+            if favs_match and not self.video_info.get("favorites"):
+                self.video_info["favorites"] = int(favs_match.group(1))
+
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Comentários de nível 1 (top-level) com paginação
@@ -221,18 +315,8 @@ class TikTokScraper:
                     f"(total nível 1: {len(all_comments)})"
                 )
 
-                # Verifica se há mais páginas
-                has_more = False
-                try:
-                    if hasattr(self, '_last_response'):
-                        resp_data = self._last_response
-                        if isinstance(resp_data, dict):
-                            has_more = (
-                                resp_data.get("hasMore", False) or
-                                resp_data.get("has_more", False)
-                            )
-                except Exception:
-                    pass
+                # Verifica se há mais páginas - múltiplas estratégias
+                has_more = self._check_has_more()
 
                 if not has_more:
                     break
@@ -248,6 +332,47 @@ class TikTokScraper:
                 continue
 
         return all_comments
+
+    def _check_has_more(self) -> bool:
+        """Verifica se há mais páginas de comentários."""
+        try:
+            if not hasattr(self, '_last_response'):
+                return False
+
+            data = self._last_response
+            if not isinstance(data, dict):
+                return False
+
+            # Múltiplas estratégias para detectar hasMore
+            checks = [
+                data.get("hasMore", False),
+                data.get("has_more", False),
+                data.get("hasmore", False),
+                data.get("HasMore", False),
+            ]
+
+            if any(checks):
+                return True
+
+            # Se cursor mudou e temos comentários, pode haver mais
+            new_cursor = data.get("cursor", 0) or data.get("next_cursor", 0)
+            if isinstance(new_cursor, (int, str)) and str(new_cursor).isdigit():
+                try:
+                    nc = int(new_cursor)
+                    if nc > 0:
+                        return True
+                except ValueError:
+                    pass
+
+            # Se a resposta tem menos comentários que o count pedido, é o fim
+            comments = data.get("comments", []) or []
+            if len(comments) < 30:  # count padrão é 30
+                return False
+
+            return True
+
+        except Exception:
+            return False
 
     def _fetch_comment_page(self, video_id: str, cursor: int) -> List[Dict[str, Any]]:
         """Busca uma página de comentários."""
@@ -328,8 +453,9 @@ class TikTokScraper:
                 except json.JSONDecodeError:
                     break
 
-                reply_list = data.get("comments", []) or \
-                            data.get("reply_comment", []) or []
+                reply_list = (data.get("comments", []) or
+                            data.get("reply_comment", []) or
+                            data.get("replies", []))
 
                 for item in reply_list:
                     r = self._parse_reply_item(item)
@@ -339,7 +465,8 @@ class TikTokScraper:
                 # Verifica se há mais páginas de replies
                 has_more = (
                     data.get("hasMore", False) or
-                    data.get("has_more", False)
+                    data.get("has_more", False) or
+                    data.get("hasmore", False)
                 )
 
                 if not has_more or not reply_list:
@@ -432,7 +559,6 @@ class TikTokScraper:
             "replies_count": 0,  # replies não têm sub-replies neste nível
             "author": author,
             "date": date_str,
-            "_is_reply": True,  # marcação interna para debug
         }
 
     # ------------------------------------------------------------------
