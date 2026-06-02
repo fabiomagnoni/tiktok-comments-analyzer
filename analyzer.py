@@ -247,14 +247,14 @@ def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
         'summary': sentiment_data['summary'],
         'top_comments_by_likes': [
             {'text': c.get('text', ''), 'author': c.get('author', ''),
-             'likes': c.get('likes', 0), 'sentiment': c.get('sentiment', 'neutral'),
+             'likes': c.get('likes', 0), 'sentiment': c.get('label', 'neutral'),
              'polarity': c.get('polarity', 0)}
             for c in sorted_by_likes[:20]
         ],
         'top_comments_by_replies': [
             {'text': c.get('text', ''), 'author': c.get('author', ''),
              'replies_count': c.get('replies_count', 0),
-             'sentiment': c.get('sentiment', 'neutral')}
+             'sentiment': c.get('label', 'neutral')}
             for c in sorted_by_replies[:20]
         ],
         'top_words': [{'word': w, 'count': n} for w, n in word_freq],
@@ -284,6 +284,13 @@ def run_aggregated_analysis(url_results: List[Dict]) -> Dict[str, Any]:
     # Análise agregada
     aggregated = run_analysis(all_comments)
 
+    # Coleta video_info de todos os vídeos
+    all_video_info = []
+    for result in url_results:
+        vi = result.get('video_info', {})
+        if vi:
+            all_video_info.append(vi)
+
     # Análise por URL individual
     per_url = []
     for result in url_results:
@@ -301,4 +308,6 @@ def run_aggregated_analysis(url_results: List[Dict]) -> Dict[str, Any]:
         'per_video': per_url,
         'total_videos': len(url_results),
         'successful_scrapes': sum(1 for r in url_results if r.get('comments')),
+        # Inclui video_info para o dashboard mostrar stats do vídeo
+        'video_stats': all_video_info[0] if len(all_video_info) == 1 else all_video_info,
     }
