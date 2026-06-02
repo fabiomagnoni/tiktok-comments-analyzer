@@ -4,7 +4,7 @@ Dashboard completo para scraping e análise de comentários do TikTok com suport
 
 ## Funcionalidades
 
-- 🎬 **Scraping real** via Playwright (contorna WAF do TikTok)
+- 🎬 **Scraping real** via API web do TikTok (sem Playwright necessário)
 - 🔗 **Múltiplas URLs** - insira 1 ou N vídeos para analisar
 - ❤️ **Engajamento** - likes, comentários e respostas por comentário
 - 📊 **Análise de sentimento** - positivo, negativo, neutro (português + inglês)
@@ -27,8 +27,8 @@ venv\Scripts\activate  # Windows
 # Instalar dependências
 pip install -r requirements.txt
 
-# Instalar Playwright browsers (chromium)
-playwright install chromium
+# Baixar dados do NLTK (primeira execução)
+python -c "import nltk; nltk.download('punkt_tab'); nltk.download('stopwords')"
 ```
 
 ## Uso
@@ -51,8 +51,9 @@ Acesse: **http://localhost:5000**
 ```
 tiktok-comments-analyzer/
 ├── app.py              # Flask backend (API + servidor)
-├── scraper.py          # Playwright scraper com anti-detecção
+├── scraper.py          # Scraper via API web do TikTok
 ├── analyzer.py         # Análise de sentimento + Word Cloud
+├── mock_data.py        # Dados mock para fallback/teste
 ├── requirements.txt    # Dependências Python
 ├── .gitignore
 ├── data/               # Dados persistidos em JSON (auto-criado)
@@ -65,12 +66,12 @@ tiktok-comments-analyzer/
 
 ## Como funciona o scraping
 
-O TikTok usa um WAF (Web Application Firewall) chamado SlardarWAF que bloqueia requisições HTTP diretas. O scraper resolve isso usando:
+O scraper usa a **API web do TikTok** diretamente:
 
-1. **Playwright** - navegador Chromium real, não requisição HTTP
-2. **Anti-detecção** - remove propriedades de automação do navigator
-3. **Scroll automático** - carrega comentários via lazy loading
-4. **Timeouts generosos** - aguarda carregamento completo da página
+1. **Obtenção de cookies** - visita tiktok.com para obter sessão válida
+2. **Extração do video ID** - parse da URL para obter o ID do vídeo
+3. **Chamada à API** - endpoint `/api/comment/list/online/` com paginação
+4. **Fallback** - se a API falhar, usa dados mock para teste
 
 ## API Endpoints
 
@@ -80,3 +81,4 @@ O TikTok usa um WAF (Web Application Firewall) chamado SlardarWAF que bloqueia r
 | `/api/scrape` | POST | Scraping de múltiplas URLs `{ "urls": "url1\nurl2" }` |
 | `/api/results` | GET | Retorna dados cacheados |
 | `/api/clear` | GET | Limpa dados cacheados |
+| `/api/mock` | GET | Dados mock para teste rápido |
