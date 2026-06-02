@@ -128,7 +128,7 @@
             box-shadow: 0 4px 15px rgba(37, 244, 238, 0.4);
         }
 
-        /* Botão de dados mock */
+        /* Botao de dados mock */
         .btn-mock {
             background: linear-gradient(135deg, var(--accent-purple), #6d28d9);
             color: white; border: none; padding: 0.6rem 1.2rem;
@@ -376,24 +376,24 @@
 <header class="header">
     <div class="header-content">
         <div class="logo">
-            <div class="logo-icon">🎬</div>
+            <div class="logo-icon"></div>
             <div>
                 <div class="logo-text">TikTok Analyzer</div>
-                <div class="logo-subtitle">Análise de Comentários & Sentimento</div>
+                <div class="logo-subtitle">Analise de Comentarios & Sentimento</div>
             </div>
         </div>
 
         <!-- URL Input Section -->
         <div class="input-section">
             <textarea class="url-textarea" id="urlInput"
-                      placeholder="Cole as URLs dos vídeos TikTok (uma por linha)&#10;Ex: https://www.tiktok.com/@user/video/xxx"></textarea>
+                      placeholder="Cole as URLs dos videos TikTok (uma por linha)&#10;Ex: https://www.tiktok.com/@user/video/xxx"></textarea>
             <div class="btn-group">
-                <button class="btn-scrape" id="scrapeBtn" onclick="startScraping()">🔍 Analisar</button>
-                <!-- Botão de teste com dados mock - sempre visível -->
-                <button class="btn-mock" onclick="loadMockData()">🧪 Testar Mock</button>
+                <button class="btn-scrape" id="scrapeBtn" onclick="startScraping()">Analisar</button>
+                <!-- Botao de teste com dados mock - sempre visivel -->
+                <button class="btn-mock" onclick="loadMockData()">Testar Mock</button>
                 {% if has_cache %}
-                <button class="btn-load-cache" onclick="loadCachedData()">💾 Carregar Cache</button>
-                <button class="btn-clear" onclick="clearCache()">🗑️ Limpar</button>
+                <button class="btn-load-cache" onclick="loadCachedData()">Carregar Cache</button>
+                <button class="btn-clear" onclick="clearCache()">Limpar</button>
                 {% endif %}
             </div>
         </div>
@@ -403,13 +403,13 @@
 <!-- Main Content -->
 <main class="main" id="app">
     <div class="welcome-state" id="welcomeState">
-        <div class="welcome-icon">📊</div>
+        <div class="welcome-icon"></div>
         <h1 class="welcome-title">TikTok Comments Analyzer</h1>
         <p class="welcome-desc">
-            Cole uma ou mais URLs de vídeos do TikTok (uma por linha) e clique em "Analisar".<br>
-            O sistema fará scraping real dos comentários, realizará análise de sentimento<br>
-            e gerará visualizações completas no dashboard abaixo.<br><br>
-            <strong>Dica:</strong> Use o botão 🧪 Testar Mock para ver o dashboard funcionando<br>
+            Cole uma ou mais URLs de videos do TikTok (uma por linha) e clique em "Analisar".<br>
+            O sistema fara scraping real dos comentarios, realizara analise de sentimento<br>
+            e gerara visualizacoes completas no dashboard abaixo.<br><br>
+            <strong>Dica:</strong> Use o botao Testar Mock para ver o dashboard funcionando<br>
             com dados de exemplo sem precisar do scraping.
         </p>
     </div>
@@ -428,7 +428,7 @@ async function startScraping() {
     const urlsRaw = document.getElementById('urlInput').value.trim();
     if (!urlsRaw) return alert('Por favor, insira pelo menos uma URL do TikTok');
 
-    showLoading('🔍 Iniciando scraping dos vídeos...');
+    showLoading('Iniciando scraping dos videos...');
     const btn = document.getElementById('scrapeBtn');
     btn.disabled = true;
 
@@ -444,20 +444,20 @@ async function startScraping() {
         if (result.status === 'success') {
             renderDashboard(result.data);
         } else {
-            showError(result.message || 'Erro ao analisar os vídeos');
+            showError(result.message || 'Erro ao analisar os videos');
         }
     } catch (err) {
-        showError('Erro de conexão: ' + err.message);
+        showError('Erro de conexao: ' + err.message);
     } finally {
         btn.disabled = false;
     }
 }
 
 // ============================================
-// Mock Data - Teste rápido sem scraping real
+// Mock Data - Teste rapido sem scraping real
 // ============================================
 async function loadMockData() {
-    showLoading('🧪 Carregando dados mock para teste...');
+    showLoading('Carregando dados mock para teste...');
     try {
         const response = await fetch('/api/mock');
         const result = await response.json();
@@ -476,7 +476,7 @@ async function loadMockData() {
 // Cache Operations
 // ============================================
 async function loadCachedData() {
-    showLoading('💾 Carregando dados cacheados...');
+    showLoading('Carregando dados cacheados...');
     try {
         const response = await fetch('/api/results');
         const result = await response.json();
@@ -504,13 +504,13 @@ async function clearCache() {
 // ============================================
 // UI States
 // ============================================
-function showLoading(text = '🔍 Scraping comentários do TikTok...') {
+function showLoading(text = 'Scraping comentarios do TikTok...') {
     document.getElementById('app').innerHTML = `
         <div class="loading-state">
             <div class="spinner"></div>
             <p class="loading-text">${text}</p>
             <p style="color: var(--text-muted); font-size: 0.85rem;">
-                Isso pode levar alguns minutos dependendo do número de vídeos
+                Isso pode levar alguns minutos dependendo do numero de videos
             </p>
         </div>`;
 }
@@ -518,7 +518,7 @@ function showLoading(text = '🔍 Scraping comentários do TikTok...') {
 function showError(message) {
     document.getElementById('app').innerHTML = `
         <div class="error-state">
-            <div class="error-icon">❌</div>
+            <div class="error-icon"></div>
             <h3>Erro ao analisar</h3>
             <p style="color: var(--text-secondary); margin-top: 0.5rem;">${message}</p>
             <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem;
@@ -539,9 +539,9 @@ function renderDashboard(data) {
     const perVideo = data.per_video || [];
     const videoStats = data.video_stats || {};
 
-    // Formata números grandes (ex: 2453 -> 2.453)
+    // Formata numeros grandes (ex: 2453 -> 2.453)
     function fmt(n) {
-        if (!n && n !== 0) return '—';
+        if (!n && n !== 0) return '';
         return Number(n).toLocaleString('pt-BR');
     }
 
@@ -549,9 +549,9 @@ function renderDashboard(data) {
         <!-- Stats Cards - Sentimento -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total de Comentários</div>
+                <div class="stat-label">Total de Comentarios</div>
                 <div class="stat-value stat-pink">${fmt(summary.total_comments)}</div>
-                ${data.total_videos > 1 ? `<div class="stat-subtitle">${data.successful_scrapes || 0} de ${data.total_videos} vídeos com sucesso</div>` : ''}
+                ${data.total_videos > 1 ? `<div class="stat-subtitle">${data.successful_scrapes || 0} de ${data.total_videos} videos com sucesso</div>` : ''}
             </div>
             <div class="stat-card">
                 <div class="stat-label">Positivos</div>
@@ -569,7 +569,7 @@ function renderDashboard(data) {
                 <div class="stat-subtitle">${summary.neutral_pct || 0}%</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Polaridade Média</div>
+                <div class="stat-label">Polaridade Media</div>
                 <div class="stat-value stat-cyan">${(summary.avg_polarity || 0).toFixed(3)}</div>
                 <div class="stat-subtitle">-1 (negativo) a +1 (positivo)</div>
             </div>
@@ -578,69 +578,75 @@ function renderDashboard(data) {
         <!-- Video Stats Section -->
         ${videoStats ? `
         <div class="video-stats-section">
-            <div class="video-stats-title">📱 Estatísticas do Vídeo</div>
+            <div class="video-stats-title">Estatisticas do Video</div>
             <div class="video-stats-grid">
                 ${typeof videoStats === 'object' && !Array.isArray(videoStats) ? `
                     ${videoStats.likes !== undefined ? `
                     <div class="video-stat-item">
-                        <div class="video-stat-icon">❤️</div>
+                        <div class="video-stat-icon"></div>
                         <div class="video-stat-value">${fmt(videoStats.likes)}</div>
                         <div class="video-stat-label">Curtidas</div>
                     </div>` : ''}
                     ${videoStats.comments !== undefined ? `
                     <div class="video-stat-item">
-                        <div class="video-stat-icon">💬</div>
+                        <div class="video-stat-icon"></div>
                         <div class="video-stat-value">${fmt(videoStats.comments)}</div>
-                        <div class="video-stat-label">Comentários</div>
+                        <div class="video-stat-label">Comentarios</div>
                     </div>` : ''}
                     ${videoStats.shares !== undefined ? `
                     <div class="video-stat-item">
-                        <div class="video-stat-icon">🔄</div>
+                        <div class="video-stat-icon"></div>
                         <div class="video-stat-value">${fmt(videoStats.shares)}</div>
                         <div class="video-stat-label">Compartilhamentos</div>
                     </div>` : ''}
                     ${videoStats.favorites !== undefined ? `
                     <div class="video-stat-item">
-                        <div class="video-stat-icon">🔖</div>
+                        <div class="video-stat-icon"></div>
                         <div class="video-stat-value">${fmt(videoStats.favorites)}</div>
                         <div class="video-stat-label">Favoritos</div>
                     </div>` : ''}
                     ${videoStats.plays !== undefined ? `
                     <div class="video-stat-item">
-                        <div class="video-stat-icon">▶️</div>
+                        <div class="video-stat-icon"></div>
                         <div class="video-stat-value">${fmt(videoStats.plays)}</div>
-                        <div class="video-stat-label">Visualizações</div>
+                        <div class="video-stat-label">Visualizacoes</div>
                     </div>` : ''}
                 ` : Array.isArray(videoStats) ? `
                     ${videoStats.map((vs, i) => `
                         <div style="grid-column: 1/-1; margin-bottom: 0.5rem;">
                             <h4 style="color: var(--accent-cyan); font-size: 0.9rem; margin-bottom: 0.5rem;">
-                                Vídeo ${i + 1}${vs.author_name ? ' — @' + vs.author_name : ''}
+                                Video ${i + 1}${vs.author_name ? ' — @' + vs.author_name : ''}
                             </h4>
                             <div class="video-stats-grid">
                                 ${vs.likes !== undefined ? `
                                 <div class="video-stat-item">
-                                    <div class="video-stat-icon">❤️</div>
+                                    <div class="video-stat-icon"></div>
                                     <div class="video-stat-value">${fmt(vs.likes)}</div>
                                     <div class="video-stat-label">Curtidas</div>
                                 </div>` : ''}
                                 ${vs.comments !== undefined ? `
                                 <div class="video-stat-item">
-                                    <div class="video-stat-icon">💬</div>
+                                    <div class="video-stat-icon"></div>
                                     <div class="video-stat-value">${fmt(vs.comments)}</div>
-                                    <div class="video-stat-label">Comentários</div>
+                                    <div class="video-stat-label">Comentarios</div>
                                 </div>` : ''}
                                 ${vs.shares !== undefined ? `
                                 <div class="video-stat-item">
-                                    <div class="video-stat-icon">🔄</div>
+                                    <div class="video-stat-icon"></div>
                                     <div class="video-stat-value">${fmt(vs.shares)}</div>
                                     <div class="video-stat-label">Compartilhamentos</div>
                                 </div>` : ''}
                                 ${vs.favorites !== undefined ? `
                                 <div class="video-stat-item">
-                                    <div class="video-stat-icon">🔖</div>
+                                    <div class="video-stat-icon"></div>
                                     <div class="video-stat-value">${fmt(vs.favorites)}</div>
                                     <div class="video-stat-label">Favoritos</div>
+                                </div>` : ''}
+                                ${vs.plays !== undefined ? `
+                                <div class="video-stat-item">
+                                    <div class="video-stat-icon"></div>
+                                    <div class="video-stat-value">${fmt(vs.plays)}</div>
+                                    <div class="video-stat-label">Visualizacoes</div>
                                 </div>` : ''}
                             </div>
                         </div>
@@ -653,20 +659,20 @@ function renderDashboard(data) {
         <div class="dashboard-grid">
             <!-- Sentiment Distribution Pie Chart -->
             <div class="card">
-                <div class="card-title">📊 Distribuição de Sentimento</div>
+                <div class="card-title">Distribuicao de Sentimento</div>
                 <div class="chart-container"><canvas id="sentimentPie"></canvas></div>
             </div>
 
             <!-- Top Comments by Likes Bar Chart -->
             <div class="card">
-                <div class="card-title">❤️ Comentários Mais Curtidos</div>
+                <div class="card-title">Comentarios Mais Curtidos</div>
                 <div class="chart-container"><canvas id="likesBar"></canvas></div>
             </div>
 
             <!-- Word Cloud -->
             ${wcPath ? `
             <div class="card card-full">
-                <div class="card-title">☁️ Word Cloud</div>
+                <div class="card-title">Word Cloud</div>
                 <div class="wordcloud-container">
                     <img src="/static/wordcloud.png?${Date.now()}" alt="Word Cloud">
                 </div>
@@ -675,7 +681,7 @@ function renderDashboard(data) {
             <!-- Top Words -->
             ${topWords.length ? `
             <div class="card card-full">
-                <div class="card-title">🔤 Palavras Mais Frequentes</div>
+                <div class="card-title">Palavras Mais Frequentes</div>
                 <div class="words-grid">
                     ${topWords.slice(0, 40).map(w => `
                         <span class="word-tag">
@@ -687,7 +693,7 @@ function renderDashboard(data) {
 
             <!-- Top Comments by Likes List -->
             <div class="card card-full">
-                <div class="card-title">🏆 Comentários com Mais Likes</div>
+                <div class="card-title">Comentarios com Mais Likes</div>
                 <div class="comments-list">
                     ${topLikes.map(c => renderComment(c, 'likes')).join('')}
                 </div>
@@ -695,7 +701,7 @@ function renderDashboard(data) {
 
             <!-- Top Comments by Replies List -->
             <div class="card card-full">
-                <div class="card-title">💬 Comentários com Mais Respostas</div>
+                <div class="card-title">Comentarios com Mais Respostas</div>
                 <div class="comments-list">
                     ${topReplies.map(c => renderComment(c, 'replies')).join('')}
                 </div>
@@ -705,7 +711,7 @@ function renderDashboard(data) {
         <!-- Per-Video Breakdown (if multiple URLs) -->
         ${perVideo.length > 1 ? `
         <div class="card card-full per-video-section">
-            <div class="card-title">📱 Análise por Vídeo</div>
+            <div class="card-title">Analise por Video</div>
             <div class="video-tab-bar" id="videoTabs">
                 ${perVideo.map((v, i) => `
                     <button class="video-tab ${i === 0 ? 'active' : ''}"
@@ -720,32 +726,38 @@ function renderDashboard(data) {
                     <div class="video-stats-grid" style="margin-bottom: 1rem;">
                         ${v.video_info.likes !== undefined ? `
                         <div class="video-stat-item">
-                            <div class="video-stat-icon">❤️</div>
+                            <div class="video-stat-icon"></div>
                             <div class="video-stat-value">${fmt(v.video_info.likes)}</div>
                             <div class="video-stat-label">Curtidas</div>
                         </div>` : ''}
                         ${v.video_info.comments !== undefined ? `
                         <div class="video-stat-item">
-                            <div class="video-stat-icon">💬</div>
+                            <div class="video-stat-icon"></div>
                             <div class="video-stat-value">${fmt(v.video_info.comments)}</div>
-                            <div class="video-stat-label">Comentários</div>
+                            <div class="video-stat-label">Comentarios</div>
                         </div>` : ''}
                         ${v.video_info.shares !== undefined ? `
                         <div class="video-stat-item">
-                            <div class="video-stat-icon">🔄</div>
+                            <div class="video-stat-icon"></div>
                             <div class="video-stat-value">${fmt(v.video_info.shares)}</div>
                             <div class="video-stat-label">Compartilhamentos</div>
                         </div>` : ''}
                         ${v.video_info.favorites !== undefined ? `
                         <div class="video-stat-item">
-                            <div class="video-stat-icon">🔖</div>
+                            <div class="video-stat-icon"></div>
                             <div class="video-stat-value">${fmt(v.video_info.favorites)}</div>
                             <div class="video-stat-label">Favoritos</div>
+                        </div>` : ''}
+                        ${v.video_info.plays !== undefined ? `
+                        <div class="video-stat-item">
+                            <div class="video-stat-icon"></div>
+                            <div class="video-stat-value">${fmt(v.video_info.plays)}</div>
+                            <div class="video-stat-label">Visualizacoes</div>
                         </div>` : ''}
                     </div>` : ''}
                     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
                         <div class="stat-card">
-                            <div class="stat-label">Comentários</div>
+                            <div class="stat-label">Comentarios</div>
                             <div class="stat-value stat-pink">${fmt(v.summary.total_comments)}</div>
                         </div>
                         <div class="stat-card">
@@ -772,16 +784,16 @@ function renderDashboard(data) {
         <!-- Scraped At -->
         ${data.scraped_at ? `
         <p style="text-align:center; color: var(--text-muted); font-size: 0.8rem; margin-top: 1rem;">
-            Dados extraídos em: ${new Date(data.scraped_at).toLocaleString('pt-BR')}
+            Dados extraidos em: ${new Date(data.scraped_at).toLocaleString('pt-BR')}
         </p>` : ''}
     `;
 
     document.getElementById('app').innerHTML = html;
 
-    // Render charts after DOM update - PASSA OS TEXTOS COMO PARÂMETRO!
+    // Render charts after DOM update - PASSA OS TEXTOS COMO PARAMETRO!
     requestAnimationFrame(() => {
         renderSentimentPie(data.sentiment_distribution);
-        renderLikesBar(topLikes);  // topLikes já tem text, author, likes
+        renderLikesBar(topLikes);  // topLikes ja tem text, author, likes
     });
 }
 
@@ -816,8 +828,8 @@ function renderComment(c, type) {
                 <div class="comment-text">${escapeHtml(c.text)}</div>
                 <div class="comment-meta">
                     ${type === 'likes'
-                        ? `<span>❤️ ${c.likes} likes</span>`
-                        : `<span>💬 ${c.replies_count} respostas</span>`}
+                        ? `<span>Likes: ${c.likes}</span>`
+                        : `<span>Respostas: ${c.replies_count}</span>`}
                     <span class="sentiment-badge ${sentimentClass}">${c.sentiment}</span>
                 </div>
             </div>
@@ -876,7 +888,7 @@ function renderLikesBar(topComments) {
     const top10 = (topComments || []).slice(0, 10);
     const labels = top10.map((c, i) => `#${i + 1}`);
     const data = top10.map(c => c.likes || 0);
-    // Extrai os textos para usar no tooltip - garante que não é undefined
+    // Extrai os textos para usar no tooltip - garante que nao e undefined
     const texts = top10.map(c => (c.text || '').substring(0, 80));
 
     charts.likesBar = new Chart(ctx, {
@@ -899,13 +911,13 @@ function renderLikesBar(topComments) {
                     backgroundColor: '#1a1a2e', titleColor: '#fff',
                     bodyColor: '#a0aec0', borderColor: '#2d3748', borderWidth: 1,
                     callbacks: {
-                        // Usa o array 'texts' que foi extraído antes - nunca undefined
+                        // Usa o array 'texts' que foi extrai antes - nunca undefined
                         afterTitle: function(context) {
                             const idx = context.dataIndex;
                             return texts[idx] || '(sem texto)';
                         },
                         label: function(context) {
-                            return `❤️ Likes: ${context.parsed.x}`;
+                            return `Likes: ${context.parsed.x}`;
                         }
                     }
                 }
@@ -922,7 +934,7 @@ function renderLikesBar(topComments) {
 // Init - Auto-load cached data if available
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Se há dados cacheados, carrega automaticamente
+    // Se ha dados cacheados, carrega automaticamente
     {% if has_cache %}
     loadCachedData();
     {% endif %}
