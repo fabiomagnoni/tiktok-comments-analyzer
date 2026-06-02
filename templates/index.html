@@ -171,17 +171,6 @@
 
         .loading-text { color: var(--text-secondary); font-size: 1.1rem; }
 
-        /* Progress Bar */
-        .progress-bar-container {
-            width: 400px; height: 8px; background: var(--bg-card);
-            border-radius: 4px; overflow: hidden; margin-top: 1rem;
-        }
-
-        .progress-bar-fill {
-            height: 100%; background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan));
-            border-radius: 4px; transition: width 0.5s ease;
-        }
-
         /* Welcome State */
         .welcome-state {
             display: flex; flex-direction: column; align-items: center;
@@ -230,6 +219,33 @@
         .stat-neutral { color: var(--neutral); }
         .stat-pink { color: var(--accent-pink); }
         .stat-cyan { color: var(--accent-cyan); }
+
+        /* Video Stats Section */
+        .video-stats-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .video-stats-title {
+            font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        .video-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+
+        .video-stat-item {
+            text-align: center; padding: 1rem;
+            background: rgba(255,255,255,0.03); border-radius: 12px;
+        }
+
+        .video-stat-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+        .video-stat-value { font-size: 1.6rem; font-weight: 800; color: var(--accent-pink); }
+        .video-stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem; }
 
         /* Dashboard Grid */
         .dashboard-grid {
@@ -394,7 +410,7 @@
             O sistema fará scraping real dos comentários, realizará análise de sentimento<br>
             e gerará visualizações completas no dashboard abaixo.<br><br>
             <strong>Dica:</strong> Use o botão 🧪 Testar Mock para ver o dashboard funcionando<br>
-            com dados de exemplo sem precisar do Playwright.
+            com dados de exemplo sem precisar do scraping.
         </p>
     </div>
 </main>
@@ -521,28 +537,35 @@ function renderDashboard(data) {
     const topWords = data.top_words || [];
     const wcPath = data.wordcloud_path;
     const perVideo = data.per_video || [];
+    const videoStats = data.video_stats || {};
+
+    // Formata números grandes (ex: 2453 -> 2.453)
+    function fmt(n) {
+        if (!n && n !== 0) return '—';
+        return Number(n).toLocaleString('pt-BR');
+    }
 
     let html = `
-        <!-- Stats Cards -->
+        <!-- Stats Cards - Sentimento -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Total de Comentários</div>
-                <div class="stat-value stat-pink">${summary.total_comments || 0}</div>
+                <div class="stat-value stat-pink">${fmt(summary.total_comments)}</div>
                 ${data.total_videos > 1 ? `<div class="stat-subtitle">${data.successful_scrapes || 0} de ${data.total_videos} vídeos com sucesso</div>` : ''}
             </div>
             <div class="stat-card">
                 <div class="stat-label">Positivos</div>
-                <div class="stat-value stat-positive">${summary.positive_count || 0}</div>
+                <div class="stat-value stat-positive">${fmt(summary.positive_count)}</div>
                 <div class="stat-subtitle">${summary.positive_pct || 0}%</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Negativos</div>
-                <div class="stat-value stat-negative">${summary.negative_count || 0}</div>
+                <div class="stat-value stat-negative">${fmt(summary.negative_count)}</div>
                 <div class="stat-subtitle">${summary.negative_pct || 0}%</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Neutros</div>
-                <div class="stat-value stat-neutral">${summary.neutral_count || 0}</div>
+                <div class="stat-value stat-neutral">${fmt(summary.neutral_count)}</div>
                 <div class="stat-subtitle">${summary.neutral_pct || 0}%</div>
             </div>
             <div class="stat-card">
@@ -551,6 +574,72 @@ function renderDashboard(data) {
                 <div class="stat-subtitle">-1 (negativo) a +1 (positivo)</div>
             </div>
         </div>
+
+        <!-- Video Stats Section -->
+        ${videoStats ? `
+        <div class="video-stats-section">
+            <div class="video-stats-title">📱 Estatísticas do Vídeo</div>
+            <div class="video-stats-grid">
+                ${typeof videoStats === 'object' && !Array.isArray(videoStats) ? `
+                    <div class="video-stat-item">
+                        <div class="video-stat-icon">❤️</div>
+                        <div class="video-stat-value">${fmt(videoStats.likes)}</div>
+                        <div class="video-stat-label">Curtidas</div>
+                    </div>
+                    <div class="video-stat-item">
+                        <div class="video-stat-icon">💬</div>
+                        <div class="video-stat-value">${fmt(videoStats.comments)}</div>
+                        <div class="video-stat-label">Comentários</div>
+                    </div>
+                    <div class="video-stat-item">
+                        <div class="video-stat-icon">🔄</div>
+                        <div class="video-stat-value">${fmt(videoStats.shares)}</div>
+                        <div class="video-stat-label">Compartilhamentos</div>
+                    </div>
+                    <div class="video-stat-item">
+                        <div class="video-stat-icon">🔖</div>
+                        <div class="video-stat-value">${fmt(videoStats.favorites)}</div>
+                        <div class="video-stat-label">Favoritos</div>
+                    </div>
+                    ${videoStats.plays ? `
+                    <div class="video-stat-item">
+                        <div class="video-stat-icon">▶️</div>
+                        <div class="video-stat-value">${fmt(videoStats.plays)}</div>
+                        <div class="video-stat-label">Visualizações</div>
+                    </div>` : ''}
+                ` : Array.isArray(videoStats) ? `
+                    ${videoStats.map((vs, i) => `
+                        <div style="grid-column: 1/-1; margin-bottom: 0.5rem;">
+                            <h4 style="color: var(--accent-cyan); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                                Vídeo ${i + 1}${vs.author_name ? ' — @' + vs.author_name : ''}
+                            </h4>
+                            <div class="video-stats-grid">
+                                <div class="video-stat-item">
+                                    <div class="video-stat-icon">❤️</div>
+                                    <div class="video-stat-value">${fmt(vs.likes)}</div>
+                                    <div class="video-stat-label">Curtidas</div>
+                                </div>
+                                <div class="video-stat-item">
+                                    <div class="video-stat-icon">💬</div>
+                                    <div class="video-stat-value">${fmt(vs.comments)}</div>
+                                    <div class="video-stat-label">Comentários</div>
+                                </div>
+                                <div class="video-stat-item">
+                                    <div class="video-stat-icon">🔄</div>
+                                    <div class="video-stat-value">${fmt(vs.shares)}</div>
+                                    <div class="video-stat-label">Compartilhamentos</div>
+                                </div>
+                                <div class="video-stat-item">
+                                    <div class="video-stat-icon">🔖</div>
+                                    <div class="video-stat-value">${fmt(vs.favorites)}</div>
+                                    <div class="video-stat-label">Favoritos</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                ` : ''}
+            </div>
+        </div>` : ''}
 
         <!-- Charts Row -->
         <div class="dashboard-grid">
@@ -618,10 +707,34 @@ function renderDashboard(data) {
             ${perVideo.map((v, i) => `
                 <div class="video-panel ${i === 0 ? 'active' : ''}" id="videoPanel${i}">
                     <h4 style="margin-bottom:1rem; color: var(--accent-cyan);">${getShortUrl(v.url)}</h4>
+                    <!-- Video stats per video -->
+                    ${v.video_info ? `
+                    <div class="video-stats-grid" style="margin-bottom: 1rem;">
+                        <div class="video-stat-item">
+                            <div class="video-stat-icon">❤️</div>
+                            <div class="video-stat-value">${fmt(v.video_info.likes)}</div>
+                            <div class="video-stat-label">Curtidas</div>
+                        </div>
+                        <div class="video-stat-item">
+                            <div class="video-stat-icon">💬</div>
+                            <div class="video-stat-value">${fmt(v.video_info.comments)}</div>
+                            <div class="video-stat-label">Comentários</div>
+                        </div>
+                        <div class="video-stat-item">
+                            <div class="video-stat-icon">🔄</div>
+                            <div class="video-stat-value">${fmt(v.video_info.shares)}</div>
+                            <div class="video-stat-label">Compartilhamentos</div>
+                        </div>
+                        <div class="video-stat-item">
+                            <div class="video-stat-icon">🔖</div>
+                            <div class="video-stat-value">${fmt(v.video_info.favorites)}</div>
+                            <div class="video-stat-label">Favoritos</div>
+                        </div>
+                    </div>` : ''}
                     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
                         <div class="stat-card">
                             <div class="stat-label">Comentários</div>
-                            <div class="stat-value stat-pink">${v.summary.total_comments || 0}</div>
+                            <div class="stat-value stat-pink">${fmt(v.summary.total_comments)}</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Positivos</div>
