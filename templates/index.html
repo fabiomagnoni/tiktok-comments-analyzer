@@ -38,7 +38,7 @@
         .header {
             background: linear-gradient(135deg, var(--bg-secondary) 0%, #0d1b2a 100%);
             border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem 2rem;
+            padding: 1.2rem 2rem;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -61,63 +61,52 @@
         }
 
         .logo-icon {
-            width: 42px;
-            height: 42px;
+            width: 42px; height: 42px;
             background: linear-gradient(135deg, var(--accent-pink), var(--accent-cyan));
             border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 1.4rem;
         }
 
         .logo-text {
-            font-size: 1.5rem;
-            font-weight: 800;
+            font-size: 1.5rem; font-weight: 800;
             background: linear-gradient(135deg, var(--accent-pink), var(--accent-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .logo-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 400;
+            font-size: 0.75rem; color: var(--text-muted);
         }
 
-        /* Controls */
-        .controls {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
+        /* URL Input Area */
+        .input-section {
+            display: flex; gap: 1rem; align-items: stretch; flex-wrap: wrap;
         }
 
-        .url-input {
+        .url-textarea {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             padding: 0.6rem 1rem;
             border-radius: 8px;
             font-size: 0.85rem;
-            width: 350px;
-            max-width: 100%;
+            width: 420px; height: 72px;
+            resize: vertical;
             outline: none;
             transition: border-color 0.2s;
+            font-family: 'Inter', monospace;
         }
 
-        .url-input:focus { border-color: var(--accent-pink); }
+        .url-textarea:focus { border-color: var(--accent-pink); }
+
+        .btn-group { display: flex; gap: 0.5rem; align-items: center; }
 
         .btn-scrape {
             background: linear-gradient(135deg, var(--accent-pink), #e91e63);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            white-space: nowrap;
+            color: white; border: none; padding: 0.6rem 1.5rem;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap;
         }
 
         .btn-scrape:hover {
@@ -127,43 +116,38 @@
 
         .btn-scrape:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        .btn-mock {
+        .btn-load-cache {
             background: linear-gradient(135deg, var(--accent-cyan), #0ea5e9);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            white-space: nowrap;
+            color: white; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap;
         }
 
-        .btn-mock:hover {
+        .btn-load-cache:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 15px rgba(37, 244, 238, 0.4);
         }
 
-        /* Main Content */
-        .main {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
+        .btn-clear {
+            background: var(--bg-card); color: var(--text-secondary);
+            border: 1px solid var(--border-color); padding: 0.6rem 1rem;
+            border-radius: 8px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; white-space: nowrap;
         }
+
+        .btn-clear:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+        /* Main Content */
+        .main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
         /* Loading State */
         .loading-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            gap: 1.5rem;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 60vh; gap: 1.5rem;
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             border: 3px solid var(--border-color);
             border-top-color: var(--accent-pink);
             border-radius: 50%;
@@ -174,22 +158,27 @@
 
         .loading-text { color: var(--text-secondary); font-size: 1.1rem; }
 
+        /* Progress Bar */
+        .progress-bar-container {
+            width: 400px; height: 8px; background: var(--bg-card);
+            border-radius: 4px; overflow: hidden; margin-top: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%; background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan));
+            border-radius: 4px; transition: width 0.5s ease;
+        }
+
         /* Welcome State */
         .welcome-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            text-align: center;
-            gap: 1rem;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 60vh; text-align: center; gap: 1rem;
         }
 
         .welcome-icon { font-size: 4rem; margin-bottom: 0.5rem; }
 
         .welcome-title {
-            font-size: 2rem;
-            font-weight: 800;
+            font-size: 2rem; font-weight: 800;
             background: linear-gradient(135deg, var(--accent-pink), var(--accent-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -201,14 +190,11 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            gap: 1rem; margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 1.5rem;
+            background: var(--bg-card); border-radius: 16px; padding: 1.5rem;
             border: 1px solid var(--border-color);
             transition: transform 0.2s, box-shadow 0.2s;
         }
@@ -219,11 +205,8 @@
         }
 
         .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
+            font-size: 0.8rem; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;
         }
 
         .stat-value { font-size: 2rem; font-weight: 800; }
@@ -237,28 +220,19 @@
 
         /* Dashboard Grid */
         .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;
         }
 
         .card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 1.5rem;
+            background: var(--bg-card); border-radius: 16px; padding: 1.5rem;
             border: 1px solid var(--border-color);
         }
 
         .card-full { grid-column: 1 / -1; }
 
         .card-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
         }
 
         /* Charts */
@@ -266,107 +240,96 @@
 
         /* Word Cloud */
         .wordcloud-container { text-align: center; padding: 1rem; }
-
         .wordcloud-container img {
-            max-width: 100%;
-            border-radius: 12px;
+            max-width: 100%; border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         /* Comments List */
         .comments-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            max-height: 500px;
-            overflow-y: auto;
+            display: flex; flex-direction: column; gap: 0.75rem;
+            max-height: 500px; overflow-y: auto;
         }
 
         .comment-item {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 1rem;
-            display: flex;
-            gap: 0.75rem;
-            transition: background 0.2s;
+            background: var(--bg-secondary); border-radius: 12px; padding: 1rem;
+            display: flex; gap: 0.75rem; transition: background 0.2s;
         }
 
         .comment-item:hover { background: var(--bg-card-hover); }
 
         .comment-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            width: 36px; height: 36px; border-radius: 50%;
             background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.8rem;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
         }
 
         .comment-body { flex: 1; min-width: 0; }
 
         .comment-author {
-            font-weight: 600;
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
+            font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;
         }
 
         .comment-text {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.4;
-            word-break: break-word;
+            color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; word-break: break-word;
         }
 
         .comment-meta {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            align-items: center;
-            flex-wrap: wrap;
+            display: flex; gap: 1rem; margin-top: 0.5rem;
+            font-size: 0.75rem; color: var(--text-muted); align-items: center; flex-wrap: wrap;
         }
 
         .sentiment-badge {
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
+            padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;
+            font-weight: 600; text-transform: uppercase;
         }
 
-        .badge-positive { background: rgba(72, 187, 120, 0.2); color: var(--positive); }
-        .badge-negative { background: rgba(252, 92, 101, 0.2); color: var(--negative); }
-        .badge-neutral { background: rgba(250, 204, 21, 0.2); color: var(--neutral); }
+        .badge-positive { background: rgba(72,187,120,0.2); color: var(--positive); }
+        .badge-negative { background: rgba(252,92,101,0.2); color: var(--negative); }
+        .badge-neutral  { background: rgba(250,204,21,0.2); color: var(--neutral); }
 
         /* Top Words */
         .words-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
         .word-tag {
-            background: var(--bg-secondary);
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
+            background: var(--bg-secondary); padding: 0.4rem 0.8rem; border-radius: 20px;
+            font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;
             transition: background 0.2s;
         }
 
         .word-tag:hover { background: var(--bg-card-hover); }
-
         .word-count { color: var(--accent-cyan); font-weight: 700; font-size: 0.75rem; }
+
+        /* Per-Video Section */
+        .per-video-section { margin-bottom: 2rem; }
+
+        .video-tab-bar {
+            display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .video-tab {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;
+            white-space: nowrap; font-size: 0.8rem; transition: all 0.2s;
+        }
+
+        .video-tab:hover { background: var(--bg-card-hover); }
+        .video-tab.active {
+            background: linear-gradient(135deg, var(--accent-pink), #e91e63);
+            border-color: var(--accent-pink); color: white;
+        }
+
+        .video-panel { display: none; }
+        .video-panel.active { display: block; }
 
         /* Error State */
         .error-state { text-align: center; padding: 3rem; color: var(--negative); }
         .error-icon { font-size: 3rem; margin-bottom: 1rem; }
 
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-primary); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
 
@@ -374,362 +337,426 @@
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .url-input { width: 100%; }
+            .url-textarea { width: 100%; }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">🎬</div>
-                <div>
-                    <div class="logo-text">TikTok Analyzer</div>
-                    <div class="logo-subtitle">Análise de Comentários & Sentimento</div>
-                </div>
+
+<!-- Header -->
+<header class="header">
+    <div class="header-content">
+        <div class="logo">
+            <div class="logo-icon">🎬</div>
+            <div>
+                <div class="logo-text">TikTok Analyzer</div>
+                <div class="logo-subtitle">Análise de Comentários & Sentimento</div>
             </div>
-            <div class="controls">
-                <input type="text" class="url-input" id="urlInput"
-                       placeholder="URL do vídeo TikTok..."
-                       value="https://www.tiktok.com/@ricaperrone/video/7645152910459915541">
+        </div>
+
+        <!-- URL Input Section -->
+        <div class="input-section">
+            <textarea class="url-textarea" id="urlInput"
+                      placeholder="Cole as URLs dos vídeos TikTok (uma por linha)&#10;Ex: https://www.tiktok.com/@user/video/xxx"></textarea>
+            <div class="btn-group">
                 <button class="btn-scrape" id="scrapeBtn" onclick="startScraping()">🔍 Analisar</button>
-                <!-- Botão de teste com dados mock -->
-                <button class="btn-mock" onclick="loadMockData()">⚡ Teste Rápido (Mock)</button>
+                {% if has_cache %}
+                <button class="btn-load-cache" onclick="loadCachedData()">💾 Carregar Cache</button>
+                <button class="btn-clear" onclick="clearCache()">🗑️ Limpar</button>
+                {% endif %}
             </div>
         </div>
-    </header>
+    </div>
+</header>
 
-    <!-- Main Content -->
-    <main class="main" id="app">
-        <div class="welcome-state" id="welcomeState">
-            <div class="welcome-icon">📊</div>
-            <h1 class="welcome-title">TikTok Comments Analyzer</h1>
-            <p class="welcome-desc">
-                Cole a URL de um vídeo do TikTok e clique em "Analisar" para extrair
-                todos os comentários, realizar análise de sentimento e gerar visualizações.
-                <br><br>
-                Ou use o botão <strong>"Teste Rápido"</strong> para ver o dashboard com dados simulados.
+<!-- Main Content -->
+<main class="main" id="app">
+    <div class="welcome-state" id="welcomeState">
+        <div class="welcome-icon">📊</div>
+        <h1 class="welcome-title">TikTok Comments Analyzer</h1>
+        <p class="welcome-desc">
+            Cole uma ou mais URLs de vídeos do TikTok (uma por linha) e clique em "Analisar".<br>
+            O sistema fará scraping real dos comentários, realizará análise de sentimento<br>
+            e gerará visualizações completas no dashboard abaixo.
+        </p>
+    </div>
+</main>
+
+<script>
+// ============================================
+// State Management
+// ============================================
+let charts = {};
+
+// ============================================
+// Scraping
+// ============================================
+async function startScraping() {
+    const urlsRaw = document.getElementById('urlInput').value.trim();
+    if (!urlsRaw) return alert('Por favor, insira pelo menos uma URL do TikTok');
+
+    showLoading('🔍 Iniciando scraping dos vídeos...');
+    const btn = document.getElementById('scrapeBtn');
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/scrape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: urlsRaw }),
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            renderDashboard(result.data);
+        } else {
+            showError(result.message || 'Erro ao analisar os vídeos');
+        }
+    } catch (err) {
+        showError('Erro de conexão: ' + err.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ============================================
+// Cache Operations
+// ============================================
+async function loadCachedData() {
+    showLoading('💾 Carregando dados cacheados...');
+    try {
+        const response = await fetch('/api/results');
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            renderDashboard(result.data);
+        } else {
+            showError(result.message || 'Nenhum dado cacheado encontrado');
+        }
+    } catch (err) {
+        showError('Erro ao carregar dados: ' + err.message);
+    }
+}
+
+async function clearCache() {
+    if (!confirm('Tem certeza que deseja limpar os dados cacheados?')) return;
+    try {
+        await fetch('/api/clear');
+        location.reload();
+    } catch (err) {
+        alert('Erro ao limpar: ' + err.message);
+    }
+}
+
+// ============================================
+// UI States
+// ============================================
+function showLoading(text = '🔍 Scraping comentários do TikTok...') {
+    document.getElementById('app').innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p class="loading-text">${text}</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">
+                Isso pode levar alguns minutos dependendo do número de vídeos
             </p>
+        </div>`;
+}
+
+function showError(message) {
+    document.getElementById('app').innerHTML = `
+        <div class="error-state">
+            <div class="error-icon">❌</div>
+            <h3>Erro ao analisar</h3>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">${message}</p>
+            <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem;
+                background: var(--accent-pink); color: white; border: none; border-radius: 8px;
+                cursor: pointer;">Tentar Novamente</button>
+        </div>`;
+}
+
+// ============================================
+// Dashboard Rendering
+// ============================================
+function renderDashboard(data) {
+    const summary = data.summary || {};
+    const topLikes = data.top_comments_by_likes || [];
+    const topReplies = data.top_comments_by_replies || [];
+    const topWords = data.top_words || [];
+    const wcPath = data.wordcloud_path;
+    const perVideo = data.per_video || [];
+
+    let html = `
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total de Comentários</div>
+                <div class="stat-value stat-pink">${summary.total_comments || 0}</div>
+                ${data.total_videos > 1 ? `<div class="stat-subtitle">${data.successful_scrapes || 0} de ${data.total_videos} vídeos com sucesso</div>` : ''}
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Positivos</div>
+                <div class="stat-value stat-positive">${summary.positive_count || 0}</div>
+                <div class="stat-subtitle">${summary.positive_pct || 0}%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Negativos</div>
+                <div class="stat-value stat-negative">${summary.negative_count || 0}</div>
+                <div class="stat-subtitle">${summary.negative_pct || 0}%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Neutros</div>
+                <div class="stat-value stat-neutral">${summary.neutral_count || 0}</div>
+                <div class="stat-subtitle">${summary.neutral_pct || 0}%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Polaridade Média</div>
+                <div class="stat-value stat-cyan">${(summary.avg_polarity || 0).toFixed(3)}</div>
+                <div class="stat-subtitle">-1 (negativo) a +1 (positivo)</div>
+            </div>
         </div>
-    </main>
 
-    <script>
-        // ============================================
-        // State Management
-        // ============================================
-        let charts = {};
+        <!-- Charts Row -->
+        <div class="dashboard-grid">
+            <!-- Sentiment Distribution Pie Chart -->
+            <div class="card">
+                <div class="card-title">📊 Distribuição de Sentimento</div>
+                <div class="chart-container"><canvas id="sentimentPie"></canvas></div>
+            </div>
 
-        // ============================================
-        // Scraping
-        // ============================================
-        async function startScraping() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) return alert('Por favor, insira uma URL do TikTok');
+            <!-- Top Comments by Likes Bar Chart -->
+            <div class="card">
+                <div class="card-title">❤️ Comentários Mais Curtidos</div>
+                <div class="chart-container"><canvas id="likesBar"></canvas></div>
+            </div>
 
-            showLoading('🔍 Scraping comentários do TikTok...');
-            const btn = document.getElementById('scrapeBtn');
-            btn.disabled = true;
+            <!-- Word Cloud -->
+            ${wcPath ? `
+            <div class="card card-full">
+                <div class="card-title">☁️ Word Cloud</div>
+                <div class="wordcloud-container">
+                    <img src="/static/wordcloud.png?${Date.now()}" alt="Word Cloud">
+                </div>
+            </div>` : ''}
 
-            try {
-                const response = await fetch('/api/scrape', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url }),
-                });
+            <!-- Top Words -->
+            ${topWords.length ? `
+            <div class="card card-full">
+                <div class="card-title">🔤 Palavras Mais Frequentes</div>
+                <div class="words-grid">
+                    ${topWords.slice(0, 40).map(w => `
+                        <span class="word-tag">
+                            ${w.word}
+                            <span class="word-count">${w.count}</span>
+                        </span>`).join('')}
+                </div>
+            </div>` : ''}
 
-                const result = await response.json();
+            <!-- Top Comments by Likes List -->
+            <div class="card card-full">
+                <div class="card-title">🏆 Comentários com Mais Likes</div>
+                <div class="comments-list">
+                    ${topLikes.map(c => renderComment(c, 'likes')).join('')}
+                </div>
+            </div>
 
-                if (result.status === 'success') {
-                    renderDashboard(result.data);
-                } else {
-                    showError(result.message || 'Erro ao analisar o vídeo');
-                }
-            } catch (err) {
-                showError('Erro de conexão: ' + err.message);
-            } finally {
-                btn.disabled = false;
-            }
-        }
+            <!-- Top Comments by Replies List -->
+            <div class="card card-full">
+                <div class="card-title">💬 Comentários com Mais Respostas</div>
+                <div class="comments-list">
+                    ${topReplies.map(c => renderComment(c, 'replies')).join('')}
+                </div>
+            </div>
+        </div>
 
-        // ============================================
-        // Mock Data Test
-        // ============================================
-        async function loadMockData() {
-            showLoading('⚡ Carregando dados simulados...');
-
-            try {
-                const response = await fetch('/api/mock');
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    renderDashboard(result.data);
-                } else {
-                    showError(result.message || 'Erro ao carregar dados mock');
-                }
-            } catch (err) {
-                showError('Erro de conexão: ' + err.message);
-            }
-        }
-
-        // ============================================
-        // UI States
-        // ============================================
-        function showLoading(text = '🔍 Scraping comentários do TikTok...') {
-            document.getElementById('app').innerHTML = `
-                <div class="loading-state">
-                    <div class="spinner"></div>
-                    <p class="loading-text">${text}</p>
-                    <p style="color: var(--text-muted); font-size: 0.85rem;">
-                        Isso pode levar até 2 minutos
-                    </p>
-                </div>`;
-        }
-
-        function showError(message) {
-            document.getElementById('app').innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">❌</div>
-                    <h3>Erro ao analisar</h3>
-                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">${message}</p>
-                    <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem;
-                        background: var(--accent-pink); color: white; border: none; border-radius: 8px;
-                        cursor: pointer;">Tentar Novamente</button>
-                </div>`;
-        }
-
-        // ============================================
-        // Dashboard Rendering
-        // ============================================
-        function renderDashboard(data) {
-            const summary = data.summary || {};
-            const topLikes = data.top_comments_by_likes || [];
-            const topReplies = data.top_comments_by_replies || [];
-            const topWords = data.top_words || [];
-            const wcPath = data.wordcloud_path;
-
-            let html = `
-                <!-- Stats Cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Total de Comentários</div>
-                        <div class="stat-value stat-pink">${summary.total_comments || 0}</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Positivos</div>
-                        <div class="stat-value stat-positive">${summary.positive_count || 0}</div>
-                        <div class="stat-subtitle">${summary.positive_pct || 0}%</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Negativos</div>
-                        <div class="stat-value stat-negative">${summary.negative_count || 0}</div>
-                        <div class="stat-subtitle">${summary.negative_pct || 0}%</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Neutros</div>
-                        <div class="stat-value stat-neutral">${summary.neutral_count || 0}</div>
-                        <div class="stat-subtitle">${summary.neutral_pct || 0}%</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Polaridade Média</div>
-                        <div class="stat-value stat-cyan">${(summary.avg_polarity || 0).toFixed(3)}</div>
-                        <div class="stat-subtitle">-1 (negativo) a +1 (positivo)</div>
+        <!-- Per-Video Breakdown (if multiple URLs) -->
+        ${perVideo.length > 1 ? `
+        <div class="card card-full per-video-section">
+            <div class="card-title">📱 Análise por Vídeo</div>
+            <div class="video-tab-bar" id="videoTabs">
+                ${perVideo.map((v, i) => `
+                    <button class="video-tab ${i === 0 ? 'active' : ''}"
+                            onclick="switchVideoTab(${i})">${getShortUrl(v.url)}</button>
+                `).join('')}
+            </div>
+            ${perVideo.map((v, i) => `
+                <div class="video-panel ${i === 0 ? 'active' : ''}" id="videoPanel${i}">
+                    <h4 style="margin-bottom:1rem; color: var(--accent-cyan);">${getShortUrl(v.url)}</h4>
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                        <div class="stat-card">
+                            <div class="stat-label">Comentários</div>
+                            <div class="stat-value stat-pink">${v.summary.total_comments || 0}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Positivos</div>
+                            <div class="stat-value stat-positive">${(v.summary.positive_pct || 0)}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Negativos</div>
+                            <div class="stat-value stat-negative">${(v.summary.negative_pct || 0)}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Neutros</div>
+                            <div class="stat-value stat-neutral">${(v.summary.neutral_pct || 0)}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Polaridade</div>
+                            <div class="stat-value stat-cyan">${(v.summary.avg_polarity || 0).toFixed(3)}</div>
+                        </div>
                     </div>
                 </div>
+            `).join('')}
+        </div>` : ''}
 
-                <!-- Charts Row -->
-                <div class="dashboard-grid">
-                    <!-- Sentiment Distribution Pie Chart -->
-                    <div class="card">
-                        <div class="card-title">📊 Distribuição de Sentimento</div>
-                        <div class="chart-container"><canvas id="sentimentPie"></canvas></div>
-                    </div>
+        <!-- Scraped At -->
+        ${data.scraped_at ? `
+        <p style="text-align:center; color: var(--text-muted); font-size: 0.8rem; margin-top: 1rem;">
+            Dados extraídos em: ${new Date(data.scraped_at).toLocaleString('pt-BR')}
+        </p>` : ''}
+    `;
 
-                    <!-- Top Comments by Likes Bar Chart -->
-                    <div class="card">
-                        <div class="card-title">❤️ Comentários Mais Curtidos</div>
-                        <div class="chart-container"><canvas id="likesBar"></canvas></div>
-                    </div>
+    document.getElementById('app').innerHTML = html;
 
-                    <!-- Word Cloud -->
-                    ${wcPath ? `
-                    <div class="card card-full">
-                        <div class="card-title">☁️ Word Cloud</div>
-                        <div class="wordcloud-container">
-                            <img src="/static/wordcloud.png?${Date.now()}" alt="Word Cloud">
-                        </div>
-                    </div>` : ''}
+    // Render charts after DOM update
+    requestAnimationFrame(() => {
+        renderSentimentPie(data.sentiment_distribution);
+        renderLikesBar(topLikes);
+    });
+}
 
-                    <!-- Top Words -->
-                    ${topWords.length ? `
-                    <div class="card card-full">
-                        <div class="card-title">🔤 Palavras Mais Frequentes</div>
-                        <div class="words-grid">
-                            ${topWords.slice(0, 40).map(w => `
-                                <span class="word-tag">
-                                    ${w.word}
-                                    <span class="word-count">${w.count}</span>
-                                </span>`).join('')}
-                        </div>
-                    </div>` : ''}
+function getShortUrl(url) {
+    try {
+        const u = new URL(url);
+        return u.hostname + u.pathname.substring(0, 40);
+    } catch(e) {
+        return url.substring(0, 50);
+    }
+}
 
-                    <!-- Top Comments by Likes List -->
-                    <div class="card card-full">
-                        <div class="card-title">🏆 Comentários com Mais Likes</div>
-                        <div class="comments-list">
-                            ${topLikes.map(c => renderComment(c, 'likes')).join('')}
-                        </div>
-                    </div>
+function switchVideoTab(index) {
+    document.querySelectorAll('.video-tab').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+    });
+    document.querySelectorAll('.video-panel').forEach((p, i) => {
+        p.classList.toggle('active', i === index);
+    });
+}
 
-                    <!-- Top Comments by Replies List -->
-                    <div class="card card-full">
-                        <div class="card-title">💬 Comentários com Mais Respostas</div>
-                        <div class="comments-list">
-                            ${topReplies.map(c => renderComment(c, 'replies')).join('')}
-                        </div>
-                    </div>
-                </div>`;
+function renderComment(c, type) {
+    const sentimentClass = c.sentiment === 'positive' ? 'badge-positive'
+        : c.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
+    const initial = (c.author || '?').charAt(0).toUpperCase();
 
-            document.getElementById('app').innerHTML = html;
+    return `
+        <div class="comment-item">
+            <div class="comment-avatar">${initial}</div>
+            <div class="comment-body">
+                <div class="comment-author">@${c.author || 'desconhecido'}</div>
+                <div class="comment-text">${escapeHtml(c.text)}</div>
+                <div class="comment-meta">
+                    ${type === 'likes'
+                        ? `<span>❤️ ${c.likes} likes</span>`
+                        : `<span>💬 ${c.replies_count} respostas</span>`}
+                    <span class="sentiment-badge ${sentimentClass}">${c.sentiment}</span>
+                </div>
+            </div>
+        </div>`;
+}
 
-            // Render charts after DOM update
-            requestAnimationFrame(() => {
-                renderSentimentPie(data.sentiment_distribution);
-                renderLikesBar(topLikes);
-            });
-        }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-        function renderComment(c, type) {
-            const sentimentClass = c.sentiment === 'positive' ? 'badge-positive'
-                : c.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
-            const initial = (c.author || '?').charAt(0).toUpperCase();
+// ============================================
+// Charts
+// ============================================
+function renderSentimentPie(distribution) {
+    const ctx = document.getElementById('sentimentPie');
+    if (!ctx) return;
 
-            return `
-                <div class="comment-item">
-                    <div class="comment-avatar">${initial}</div>
-                    <div class="comment-body">
-                        <div class="comment-author">@${c.author || 'desconhecido'}</div>
-                        <div class="comment-text">${escapeHtml(c.text)}</div>
-                        <div class="comment-meta">
-                            ${type === 'likes'
-                                ? `<span>❤️ ${c.likes} likes</span>`
-                                : `<span>💬 ${c.replies_count} respostas</span>`}
-                            <span class="sentiment-badge ${sentimentClass}">${c.sentiment}</span>
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ============================================
-        // Charts
-        // ============================================
-        function renderSentimentPie(distribution) {
-            const ctx = document.getElementById('sentimentPie');
-            if (!ctx) return;
-
-            charts.sentimentPie = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Positivo', 'Negativo', 'Neutro'],
-                    datasets: [{
-                        data: [
-                            distribution.positive || 0,
-                            distribution.negative || 0,
-                            distribution.neutral || 0
-                        ],
-                        backgroundColor: ['#48bb78', '#fc5c65', '#facc15'],
-                        borderColor: '#16213e',
-                        borderWidth: 3,
-                    }]
+    charts.sentimentPie = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Positivo', 'Negativo', 'Neutro'],
+            datasets: [{
+                data: [
+                    distribution.positive || 0,
+                    distribution.negative || 0,
+                    distribution.neutral || 0
+                ],
+                backgroundColor: ['#48bb78', '#fc5c65', '#facc15'],
+                borderColor: '#16213e', borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#a0aec0', padding: 20, font: { size: 13 } }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#a0aec0', padding: 20, font: { size: 13 } }
-                        },
-                        tooltip: {
-                            backgroundColor: '#1a1a2e',
-                            titleColor: '#fff',
-                            bodyColor: '#a0aec0',
-                            borderColor: '#2d3748',
-                            borderWidth: 1,
-                        }
-                    },
-                    cutout: '65%',
+                tooltip: {
+                    backgroundColor: '#1a1a2e', titleColor: '#fff',
+                    bodyColor: '#a0aec0', borderColor: '#2d3748', borderWidth: 1,
                 }
-            });
+            },
+            cutout: '65%',
         }
+    });
+}
 
-        function renderLikesBar(topComments) {
-            const ctx = document.getElementById('likesBar');
-            if (!ctx) return;
+function renderLikesBar(topComments) {
+    const ctx = document.getElementById('likesBar');
+    if (!ctx) return;
 
-            const top10 = topComments.slice(0, 10);
-            const labels = top10.map((c, i) => `#${i + 1}`);
-            const data = top10.map(c => c.likes || 0);
-            const colors = data.map(v => v > 0 ? '#fe2c55' : '#718096');
+    const top10 = topComments.slice(0, 10);
+    const labels = top10.map((c, i) => `#${i + 1}`);
+    const data = top10.map(c => c.likes || 0);
+    const colors = data.map(v => v > 0 ? '#fe2c55' : '#718096');
 
-            charts.likesBar = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Likes',
-                        data,
-                        backgroundColor: colors,
-                        borderRadius: 6,
-                        borderSkipped: false,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#1a1a2e',
-                            titleColor: '#fff',
-                            bodyColor: '#a0aec0',
-                            borderColor: '#2d3748',
-                            borderWidth: 1,
-                            callbacks: {
-                                afterTitle: function(context) {
-                                    return top10[context.dataIndex]?.text?.substring(0, 60) + '...';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: '#2d3748' },
-                            ticks: { color: '#a0aec0' }
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: { color: '#a0aec0', font: { weight: 'bold' } }
+    charts.likesBar = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Likes', data, backgroundColor: colors,
+                borderRadius: 6, borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1a2e', titleColor: '#fff',
+                    bodyColor: '#a0aec0', borderColor: '#2d3748', borderWidth: 1,
+                    callbacks: {
+                        afterTitle: function(context) {
+                            return top10[context.dataIndex]?.text?.substring(0, 60) + '...';
                         }
                     }
                 }
-            });
+            },
+            scales: {
+                x: { grid: { color: '#2d3748' }, ticks: { color: '#a0aec0' } },
+                y: { grid: { display: false }, ticks: { color: '#a0aec0', font: { weight: 'bold' } } }
+            }
         }
+    });
+}
 
-        // ============================================
-        // Init - Auto-scrape on load
-        // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            // Descomente para auto-iniciar o scraping:
-            // startScraping();
-        });
-    </script>
+// ============================================
+// Init - Auto-load cached data if available
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+    // Se há dados cacheados, carrega automaticamente
+    {% if has_cache %}
+    loadCachedData();
+    {% endif %}
+});
+</script>
+
 </body>
 </html>
