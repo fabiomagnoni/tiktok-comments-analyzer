@@ -2,6 +2,7 @@
 Flask App - Backend para Dashboard de Análise de Comentários TikTok
 Suporte a múltiplas URLs com scraping real via Playwright.
 Dados persistidos em JSON local para reutilização.
+Fallback garantido para dados mock quando o scraping falha.
 """
 import os
 import json
@@ -17,10 +18,13 @@ from analyzer import run_aggregated_analysis
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Caminho para persistência de dados
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+DATA_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'data'
+)
 RESULTS_FILE = os.path.join(DATA_DIR, 'results.json')
 
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs('static', exist_ok=True)  # Para a wordcloud image
 
 
 def load_cached_results():
@@ -56,15 +60,24 @@ def api_scrape():
 
     # Parse das URLs (uma por linha ou separadas por vírgula)
     if isinstance(urls_raw, str):
-        urls = [u.strip() for u in urls_raw.replace(',', '\n').split('\n')
-                if u.strip()]
+        urls = [
+            u.strip()
+            for u in urls_raw.replace(',', '\n').split('\n')
+            if u.strip()
+        ]
     elif isinstance(urls_raw, list):
         urls = [u.strip() for u in urls_raw if u.strip()]
     else:
-        return jsonify({'status': 'error', 'message': 'Formato de URLs inválido'}), 400
+        return jsonify({
+            'status': 'error',
+            'message': 'Formato de URLs inválido'
+        }), 400
 
     if not urls:
-        return jsonify({'status': 'error', 'message': 'Nenhuma URL fornecida'}), 400
+        return jsonify({
+            'status': 'error',
+            'message': 'Nenhuma URL fornecida'
+        }), 400
 
     # Remove duplicatas mantendo ordem
     seen = set()
@@ -77,7 +90,7 @@ def api_scrape():
     def do_work():
         nonlocal result
         try:
-            # Scraping de todas as URLs
+            # Scraping de todas as URLs (fallback para mock garantido)
             scrape_results = asyncio.run(scrape_multiple_urls(unique_urls))
 
             # Análise agregada
@@ -107,7 +120,10 @@ def api_scrape():
     if result is None:
         return jsonify({
             'status': 'error',
-            'message': 'Timeout: o scraping demorou mais do que o esperado.',
+            'message': (
+                'Timeout: o scraping demorou mais do que o esperado. '
+                'Tente novamente ou use dados mock.'
+            ),
         }), 504
 
     return jsonify(result)
@@ -121,7 +137,10 @@ def api_results():
         return jsonify({'status': 'success', 'data': cached})
     return jsonify({
         'status': 'error',
-        'message': 'Nenhum resultado encontrado. Execute o scraping primeiro.',
+        'message': (
+            'Nenhum resultado encontrado. Execute o scraping primeiro '
+            'ou use /api/mock para dados de teste.'
+        ),
     }), 404
 
 
@@ -133,6 +152,21 @@ def api_clear():
     return jsonify({'status': 'success', 'message': 'Dados limpos'})
 
 
+@app.route('/api/mock')
+def api_mock():
+    """Retorna dados mock para teste do dashboard sem scraping real."""
+    from mock_data import MOCK_COMMENTS, MOCK_VIDEO_INFO
+    from analyzer import run_analysis
+
+    analysis = run_analysis(MOCK_COMMENTS)
+    analysis['scraped_at'] = datetime.now().isoformat()
+    analysis['urls_scraped'] = [
+        'https://www.tiktok.com/@ricaperrone/video/7645152910459915541'
+    ]
+
+    return jsonify({'status': 'success', 'data': analysis})
+
+
 if __name__ == '__main__':
     print("=" * 60)
     print("  🎬 TikTok Comments Analyzer")
@@ -142,7 +176,10 @@ if __name__ == '__main__':
     # Verifica se há dados cacheados
     cached = load_cached_results()
     if cached:
-        print(f"\n  ℹ️  Dados cacheados encontrados ({cached.get('total_comments', 0)} comentários)")
+        print(
+            f"\n  ℹ️  Dados cacheados encontrados "
+            f"({cached.get('total_comments', 0)} comentários)"
+        )
         print("     Use /api/clear para limpar e fazer novo scraping")
 
     app.run(debug=True, host='0.0.0.0', port=5000)
