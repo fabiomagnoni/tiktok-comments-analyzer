@@ -1,119 +1,71 @@
 """
-TikTok Comments Scraper - Múltiplas estratégias com fallback garantido.
-Estratégias em cascata: Interceptação de API → Estado React → Dados Mock
+TikTok Comments Scraper - API direta (sem Playwright).
+Extrai comentários via API web do TikTok com paginação completa.
+Fallback para dados mock quando a API falha.
 """
-import asyncio
 import json
 import os
-import random
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+import re
+import time
+from typing import List, Dict, Any, Optional
+
+import requests
 from rich.console import Console
 
 console = Console()
 
 
 class TikTokScraper:
-    """Scraper com múltiplas estratégias e fallback para dados mock."""
+    """Scraper que usa a API web do TikTok diretamente."""
 
-    def __init__(self, headless=True):
-        self.headless = headless
+    def __init__(self):
+        self.session = requests.Session()
+        self.comments: List[Dict[str, Any]] = []
+        self.video_info: Dict[str, Any] = {}
+        self._cookies_set = False
+
+    # ------------------------------------------------------------------
+    # Público
+    # ------------------------------------------------------------------
+    def scrape(self, url: str) -> tuple:
+        """Scrapes comentários de uma URL do TikTok.
+
+        Returns:
+            (comments_list, video_info_dict)
+        """
         self.comments = []
         self.video_info = {}
-        # Armazena respostas da API de comentários interceptadas
-        self.comment_responses = []
-
-    async def scrape(self, url):
-        """Scraping com fallback garantido para dados mock."""
-        playwright = None
-        browser = None
 
         try:
             console.print(f"[blue]🌐[/blue] Acessando: {url}")
 
-            # Setup navegador
-            playwright, browser, context = await self._setup_browser()
-            page = await context.new_page()
+            # 1. Obter cookies de sessão
+            if not self._get_session_cookies():
+                raise Exception("Não foi possível obter cookies do TikTok")
 
-            # Configura interceptação ANTES de navegar (apenas APIs de comentário)
-            console.print("[blue]🔍[/blue] Configurando interceptação...")
-            await self._setup_interception(page)
+            # 2. Extrair video ID da URL
+            video_id = self._extract_video_id(url)
+            if not video_id:
+                raise Exception(f"Não foi possível extrair o video ID de: {url}")
 
-            # Acessa a URL
-            response = await page.goto(url, wait_until='domcontentloaded', timeout=60000)
+            console.print(f"[blue]🎬[/blue] Video ID: {video_id}")
 
-            if not response.ok:
-                raise Exception(f"Erro HTTP {response.status}")
+            # 3. Buscar informações do vídeo
+            self._get_video_info(video_id)
 
-            # Aguarda carregamento completo
-            try:
-                await page.wait_for_load_state('networkidle', timeout=30000)
-            except PlaywrightTimeout:
-                pass
-            await asyncio.sleep(5)
+            # 4. Buscar todos os comentários com paginação
+            self.comments = self._fetch_all_comments(video_id)
 
-            # Estratégia 1: Dados da API interceptada
-            if self.comment_responses:
-                console.print(
-                    f"[blue]📊[/blue] {len(self.comment_responses)} "
-                    f"respostas de API interceptadas"
-                )
-                self.comments = self._parse_all_comment_data()
-
-            if self.comments:
-                console.print(
-                    f"[green]✓[/green] {len(self.comments)} comentários via "
-                    f"interceptação!"
-                )
-
-            # Estratégia 2: Interagir com a página (clicar + scroll)
-            if not self.comments:
-                console.print("[blue]💬[/blue] Tentando interagir com a página...")
-                await self._interact_with_page(page)
-                await asyncio.sleep(5)
-
-                if self.comment_responses:
-                    self.comments = self._parse_all_comment_data()
-
-                if self.comments:
-                    console.print(
-                        f"[green]✓[/green] {len(self.comments)} comentários "
-                        f"após interação!"
-                    )
-
-            # Estratégia 3: Extração do estado React
-            if not self.comments:
-                console.print("[blue]📊[/blue] Tentando extração do estado React...")
-                self.comments = await self._extract_from_react_state(page)
-
-                if self.comments:
-                    console.print(
-                        f"[green]✓[/green] {len(self.comments)} comentários "
-                        f"via React!"
-                    )
-
-            # Debug se nada funcionou
-            if not self.comments:
-                console.print("[red]✗[/red] Nenhum comentário encontrado!")
-                await self._save_debug_data()
+            console.print(
+                f"[green]✓[/green] {len(self.comments)} comentários extraídos!"
+            )
 
         except Exception as e:
-            console.print(f"[red]✗[/red] Erro durante o scraping: {e}")
+            console.print(f"[red]✗[/red] Erro no scraping: {e}")
             import traceback
             console.print(traceback.format_exc())
 
-        finally:
-            if browser:
-                try:
-                    await browser.close()
-                except Exception:
-                    pass
-            if playwright:
-                try:
-                    await playwright.stop()
-                except Exception:
-                    pass
-
-        # Fallback garantido para dados mock
+        # Fallback para dados mock
         if not self.comments:
             console.print("[yellow]⚠[/yellow] Usando dados mock para teste...")
             from mock_data import MOCK_COMMENTS, MOCK_VIDEO_INFO
@@ -122,479 +74,331 @@ class TikTokScraper:
 
         return self.comments, self.video_info
 
-    async def _setup_browser(self):
-        """Configura o navegador com anti-detecção."""
-        playwright = await async_playwright().start()
+    # ------------------------------------------------------------------
+    # Sessão / Cookies
+    # ------------------------------------------------------------------
+    def _get_session_cookies(self) -> bool:
+        """Visita a página principal do TikTok para obter cookies válidos."""
+        try:
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            }
 
-        browser = await playwright.chromium.launch(
-            headless=self.headless,
-            args=[
-                '--disable-blink-features=AutomationControlled',
-                '--no-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process',
-            ]
-        )
+            console.print("[blue]🍪[/blue] Obtendo cookies de sessão...")
+            resp = self.session.get(
+                "https://www.tiktok.com/", headers=headers, timeout=30
+            )
+            if resp.status_code != 200:
+                return False
 
-        context = await browser.new_context(
-            viewport={'width': 1920, 'height': 1080},
-            user_agent=(
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/120.0.0.0 Safari/537.36'
-            ),
-            locale='pt-BR',
-        )
+            # Extrai o web_id (wid) do HTML se disponível
+            wid_match = re.search(r'"wid"\s*:\s*"(\d+)"', resp.text)
+            if wid_match:
+                self.session.cookies.set("tt_webid", wid_match.group(1))
 
-        # Scripts anti-detecção
-        await context.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            window.chrome = {runtime: {}};
-            delete navigator.__proto__.webdriver;
-            Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
-            Object.defineProperty(navigator, 'languages', {
-                get: () => ['pt-BR','pt','en-US','en']
-            });
-        """)
+            self._cookies_set = True
+            console.print("[green]✓[/green] Cookies obtidos com sucesso!")
+            return True
 
-        return playwright, browser, context
+        except Exception as e:
+            console.print(f"[red]✗[/red] Erro ao obter cookies: {e}")
+            return False
 
-    async def _setup_interception(self, page):
-        """Intercepta apenas respostas de API relacionadas a comentários."""
+    # ------------------------------------------------------------------
+    # Video ID
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _extract_video_id(url: str) -> Optional[str]:
+        """Extrai o video ID de uma URL do TikTok."""
+        # Padrão: /@user/video/VIDEO_ID
+        match = re.search(r"/video/(\d+)", url)
+        if match:
+            return match.group(1)
 
-        async def handle_response(response):
-            url = response.url
+        # Padrão alternativo: ?id=VIDEO_ID ou &id=VIDEO_ID
+        match = re.search(r"[?&]id=(\d+)", url)
+        if match:
+            return match.group(1)
 
-            # Só intercepta domínios do TikTok com status 200
-            is_tiktok = any(kw in url for kw in ['tiktok.com', 'tiktokv.com'])
-            if not is_tiktok or response.status != 200:
-                return
+        return None
 
+    # ------------------------------------------------------------------
+    # Video Info
+    # ------------------------------------------------------------------
+    def _get_video_info(self, video_id: str):
+        """Busca informações básicas do vídeo."""
+        try:
+            headers = self._build_headers()
+            url = f"https://www.tiktok.com/oembed?url=https://www.tiktok.com/@placeholder/video/{video_id}"
+
+            resp = self.session.get(url, headers=headers, timeout=15)
+            if resp.status_code == 200:
+                data = resp.json()
+                self.video_info.update({
+                    "title": data.get("title", ""),
+                    "author_name": data.get("author_name", ""),
+                    "description": data.get("title", ""),
+                })
+
+        except Exception:
+            # Não é crítico, continua sem video info
+            pass
+
+    # ------------------------------------------------------------------
+    # Comentários (API direta com paginação)
+    # ------------------------------------------------------------------
+    def _fetch_all_comments(self, video_id: str) -> List[Dict[str, Any]]:
+        """Busca todos os comentários usando a API do TikTok."""
+        all_comments = []
+        cursor = 0
+        max_pages = 50  # limite de segurança
+
+        for page in range(max_pages):
             try:
-                body_preview = (await response.text())[:500]
+                comments_page = self._fetch_comment_page(video_id, cursor)
+                if not comments_page:
+                    break
 
-                # Verifica se parece com resposta de API de comentários
-                has_comment_data = (
-                    'comment' in url.lower() or
-                    'CommentList' in body_preview or
-                    '"comments"' in body_preview[:1000] or
-                    '"digg_count"' in body_preview[:2000]
+                all_comments.extend(comments_page)
+                console.print(
+                    f"[blue]📄[/blue] Página {page + 1}: "
+                    f"{len(comments_page)} comentários "
+                    f"(total: {len(all_comments)})"
                 )
 
-                if has_comment_data:
-                    try:
-                        full_body = await response.text()
-                        self.comment_responses.append({
-                            'url': url,
-                            'body': full_body,
-                        })
-                    except Exception:
-                        pass
+                # Verifica se há mais páginas
+                has_more = False
+                try:
+                    # Tenta extrair hasMore da resposta
+                    if hasattr(self, '_last_response'):
+                        resp_data = self._last_response
+                        if isinstance(resp_data, dict):
+                            has_more = resp_data.get("hasMore", False) or \
+                                      resp_data.get("has_more", False)
+                except Exception:
+                    pass
 
-            except Exception:
-                pass
+                if not has_more:
+                    break
 
-        page.on('response', handle_response)
+                cursor += len(comments_page)
+                time.sleep(1.5)  # respeitar rate limit
 
-    def _parse_all_comment_data(self):
-        """Processa todas as respostas interceptadas e remove duplicatas."""
-        all_comments = []
-
-        for resp in self.comment_responses:
-            try:
-                data = json.loads(resp['body'])
-                comments = self._extract_from_api_response(data)
-                if comments:
-                    all_comments.extend(comments)
-            except (json.JSONDecodeError, Exception):
+            except Exception as e:
+                console.print(f"[red]✗[/red] Erro na página {page + 1}: {e}")
+                if page == 0:
+                    break  # falha na primeira página = aborta
+                time.sleep(3)
                 continue
 
-        # Remove duplicatas usando os primeiros 50 caracteres do texto
-        seen_texts = set()
-        unique_comments = []
-        for c in all_comments:
-            key = c['text'][:50].strip().lower()
-            if key and key not in seen_texts:
-                seen_texts.add(key)
-                unique_comments.append(c)
+        return all_comments
 
-        return unique_comments
+    def _fetch_comment_page(self, video_id: str, cursor: int) -> List[Dict[str, Any]]:
+        """Busca uma página de comentários."""
+        headers = self._build_headers()
 
-    def _extract_from_api_response(self, data):
-        """Extrai comentários de uma resposta da API do TikTok."""
-        if isinstance(data, dict):
-            # Tenta chaves comuns da API do TikTok primeiro
-            for key in ['comments', 'comment_list']:
-                if key in data and isinstance(data[key], list) and len(data[key]) > 0:
-                    return self._parse_comment_items(data[key])
+        # Endpoint da API web do TikTok para comentários
+        url = (
+            f"https://www.tiktok.com/api/comment/list/online/"
+            f"?aid=1988&aweme_id={video_id}&count=30"
+            f"&cursor={cursor}&item_id={video_id}"
+            f"&insert_ids=&isswitch=1&list_type=&need_preview_list=0"
+        )
 
-            # Busca recursiva como fallback
-            return self._deep_search_comments(data)
+        resp = self.session.get(url, headers=headers, timeout=20)
+
+        if resp.status_code != 200:
+            # Tenta o endpoint alternativo (versão mais antiga)
+            url_alt = (
+                f"https://www.tiktok.com/api/comment/list/"
+                f"?aid=1988&aweme_id={video_id}&count=30"
+                f"&cursor={cursor}"
+            )
+            resp = self.session.get(url_alt, headers=headers, timeout=20)
+
+        if resp.status_code != 200:
+            raise Exception(f"API retornou status {resp.status_code}")
+
+        try:
+            data = resp.json()
+        except json.JSONDecodeError:
+            # Se não for JSON, tenta extrair do HTML (caso de redirect)
+            return self._try_html_extraction(video_id)
+
+        self._last_response = data
+
+        comments = []
+        comment_list = data.get("comments", [])
+
+        if not comment_list and "comment_list" in data:
+            comment_list = data["comment_list"]
+
+        for item in comment_list:
+            c = self._parse_comment_item(item)
+            if c:
+                comments.append(c)
+
+        return comments
+
+    def _try_html_extraction(self, video_id: str) -> List[Dict[str, Any]]:
+        """Fallback: tenta extrair comentários do HTML da página."""
+        try:
+            headers = self._build_headers()
+            url = f"https://www.tiktok.com/oembed?url=https://www.tiktok.com/@placeholder/video/{video_id}"
+
+            # Visita a página do vídeo diretamente
+            video_url = (
+                "https://www.tiktok.com/api/item/detail/"
+                f"?aid=1988&item_id={video_id}"
+            )
+            resp = self.session.get(video_url, headers=headers, timeout=20)
+
+            if resp.status_code == 200:
+                data = resp.json()
+                # Extrai comentários se disponíveis no detail endpoint
+                comment_list = (
+                    data.get("aweme_detail", {})
+                    .get("comments", [])
+                )
+
+                comments = []
+                for item in comment_list:
+                    c = self._parse_comment_item(item)
+                    if c:
+                        comments.append(c)
+                return comments
+
+        except Exception:
+            pass
 
         return []
 
-    def _parse_comment_items(self, items):
-        """Extrai dados de uma lista de comentários da API."""
-        results = []
+    # ------------------------------------------------------------------
+    # Parsing
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_comment_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Extrai dados de um comentário da API."""
+        if not isinstance(item, dict):
+            return None
 
-        for item in items:
-            if not isinstance(item, dict):
-                continue
+        text = (
+            item.get("text", "") or
+            item.get("content", {}).get("text", "") if isinstance(
+                item.get("content"), dict) else "" or
+            item.get("desc", "") or
+            item.get("comment_text", "") or
+            ""
+        )
 
-            text = self._extract_text(item)
-            if not text:
-                continue
+        if not text or len(str(text).strip()) < 1:
+            return None
 
-            likes = self._extract_numeric_field(
-                item, ['digg_count', 'like_count']
-            )
-            replies = self._extract_numeric_field(
-                item, ['reply_comment_total', 'reply_count']
-            )
-            author = self._extract_author(item)
-
-            results.append({
-                'text': text,
-                'likes': likes,
-                'replies_count': replies,
-                'author': author,
-                'date': str(item.get('create_time', '')) or '',
-            })
-
-        return results
-
-    def _extract_text(self, item):
-        """Extrai o texto do comentário de várias estruturas possíveis."""
-        # Campo direto 'text'
-        if ('text' in item and isinstance(item['text'], str) and
-                len(item['text'].strip()) > 1):
-            return item['text'].strip()
-
-        # Objeto content com sub-campo text
-        content = item.get('content')
-        if isinstance(content, dict):
-            for key in ['text', 'content']:
-                val = content.get(key)
-                if isinstance(val, str) and len(val.strip()) > 1:
-                    return val.strip()
-        elif isinstance(content, str) and len(content.strip()) > 1:
-            return content.strip()
-
-        # Campo desc
-        desc = item.get('desc')
-        if isinstance(desc, str) and len(desc.strip()) > 1:
-            return desc.strip()
-
-        # Campo comment_text
-        ct = item.get('comment_text')
-        if isinstance(ct, str) and len(ct.strip()) > 1:
-            return ct.strip()
-
-        # Campo body
-        body = item.get('body')
-        if isinstance(body, str) and len(body.strip()) > 1:
-            return body.strip()
-
-        # Fallback: qualquer string razoável
-        for key, val in item.items():
-            if (isinstance(val, str) and
-                    3 < len(val) < 2000 and
-                    not val.startswith('http') and
-                    not val.isdigit()):
-                return val.strip()
-
-        return ''
-
-    def _extract_numeric_field(self, item, possible_keys):
-        """Extrai um campo numérico de várias chaves possíveis."""
-        for key in possible_keys:
+        # Likes (digg_count é o campo padrão da API do TikTok)
+        likes = 0
+        for key in ["digg_count", "like_count", "likes"]:
             val = item.get(key)
             if val is not None:
                 try:
-                    return int(val)
+                    likes = int(val)
+                    break
                 except (ValueError, TypeError):
                     continue
-        return 0
 
-    def _extract_author(self, item):
-        """Extrai o nome do autor de várias estruturas possíveis."""
-        user_data = item.get('user', {}) or {}
+        # Replies count
+        replies = 0
+        for key in ["reply_comment_total", "reply_count", "replies"]:
+            val = item.get(key)
+            if val is not None:
+                try:
+                    replies = int(val)
+                    break
+                except (ValueError, TypeError):
+                    continue
+
+        # Author
+        author = ""
+        user_data = item.get("user", {}) or {}
         if isinstance(user_data, dict):
-            for key in ['unique_id', 'nickname', 'username']:
+            for key in ["unique_id", "nickname", "username"]:
                 val = user_data.get(key)
                 if isinstance(val, str) and val.strip():
-                    return val.strip()
-        return ''
-
-    async def _interact_with_page(self, page):
-        """Clica no botão de comentários e rola para carregar mais."""
-        await self._click_comments_button(page)
-        await self._scroll_comments(page)
-
-    async def _click_comments_button(self, page):
-        """Clica no botão de comentários se visível."""
-        selectors = [
-            '[data-e2e="comment-button"]',
-            'button[aria-label*="comentário" i]',
-            'button[aria-label*="Comentário" i]',
-            'button[aria-label*="comment" i]',
-        ]
-
-        for sel in selectors:
-            try:
-                btn = page.locator(sel)
-                if await btn.count() > 0:
-                    console.print(
-                        "[blue]💬[/blue] Clicando no botão de comentários..."
-                    )
-                    await btn.click()
-                    await asyncio.sleep(3)
-                    return True
-            except Exception:
-                continue
-
-        # Tenta clicar em qualquer botão com texto relacionado a comentários
-        try:
-            all_buttons = page.locator('button')
-            count = await all_buttons.count()
-            for i in range(count):
-                btn_text = await all_buttons.nth(i).text_content()
-                if ('Comentário' in btn_text or 'comentário' in btn_text or
-                        'comment' in btn_text.lower()):
-                    console.print(
-                        f"[blue]💬[/blue] Clicando no botão ({btn_text})..."
-                    )
-                    await all_buttons.nth(i).click()
-                    await asyncio.sleep(3)
-                    return True
-        except Exception:
-            pass
-
-        return False
-
-    async def _scroll_comments(self, page):
-        """Rola a seção de comentários para carregar mais."""
-        max_scrolls = 15
-        no_change_count = 0
-
-        for i in range(max_scrolls):
-            await asyncio.sleep(random.uniform(1.5, 3))
-
-            try:
-                container = page.locator('[data-e2e="comment-list"]').first
-                if not await container.count():
+                    author = val.strip()
                     break
 
-                last_height = await container.evaluate('el => el.scrollHeight')
-
-                # Rola para baixo múltiplas vezes
-                for _ in range(3):
-                    await container.evaluate('el => el.scrollTop += 600')
-                    await asyncio.sleep(random.uniform(0.5, 1.5))
-
-                new_height = await container.evaluate('el => el.scrollHeight')
-
-                if new_height == last_height:
-                    no_change_count += 1
-                    if no_change_count >= 3:
-                        return True
-                else:
-                    no_change_count = 0
-
-            except Exception:
-                break
-
-        # Tenta clicar em "Ver mais..." para expandir respostas
+        # Date / create_time
+        date_raw = item.get("create_time", "") or ""
         try:
-            ver_mais = page.locator('text=/Ver mais/i')
-            count = await ver_mais.count()
-            if count > 0:
-                console.print(
-                    f"[blue]🔽[/blue] Expandindo {count} "
-                    f"'Ver mais...' encontrados"
-                )
-                for i in range(min(count, 10)):
-                    try:
-                        btn = ver_mais.nth(0)
-                        await btn.click()
-                        await asyncio.sleep(2)
-                    except Exception:
-                        break
-        except Exception:
-            pass
+            from datetime import datetime
+            ts = int(date_raw)
+            dt = datetime.fromtimestamp(ts)
+            date_str = dt.strftime("%d/%m/%Y %H:%M")
+        except (ValueError, TypeError):
+            date_str = str(date_raw)
 
-        return True
+        return {
+            "text": str(text).strip(),
+            "likes": likes,
+            "replies_count": replies,
+            "author": author,
+            "date": date_str,
+        }
 
-    async def _extract_from_react_state(self, page):
-        """Extrai dados do estado interno da aplicação React."""
-        try:
-            state_data = await page.evaluate("""
-                () => {
-                    const results = [];
-
-                    // Tenta __UNIVERSAL_DATA_FOR_REHYDRATION__
-                    if (typeof __UNIVERSAL_DATA_FOR_REHYDRATION__ !== 'undefined') {
-                        try {
-                            results.push({
-                                source: '__UNIVERSAL_DATA',
-                                data: JSON.parse(
-                                    JSON.stringify(__UNIVERSAL_DATA_FOR_REHYDRATION__)
-                                )
-                            });
-                        } catch(e) {}
-                    }
-
-                    // Tenta SIGI_STATE
-                    if (typeof SIGI_STATE !== 'undefined') {
-                        try {
-                            results.push({
-                                source: 'SIGI_STATE',
-                                data: JSON.parse(JSON.stringify(SIGI_STATE))
-                            });
-                        } catch(e) {}
-                    }
-
-                    return results;
-                }
-            """)
-
-            for item in state_data:
-                found = self._deep_search_comments(item.get('data'))
-                if found:
-                    console.print(
-                        f"[green]✓[/green] {len(found)} comentários em "
-                        f"{item['source']}"
-                    )
-                    return found
-
-        except Exception as e:
-            console.print(
-                f"[yellow]⚠[/yellow] Erro ao extrair do estado React: {e}"
-            )
-
-        return []
-
-    def _deep_search_comments(self, data):
-        """Busca recursivamente por dados de comentário em qualquer JSON."""
-        results = []
-
-        if isinstance(data, dict):
-            for key in data:
-                value = data[key]
-
-                # Se a chave sugere comentários e é uma lista, tenta extrair
-                if 'comment' in key.lower() and isinstance(value, list):
-                    extracted = self._try_extract_from_list(value)
-                    results.extend(extracted)
-
-                # Continua recursão em dicts e listas
-                if isinstance(value, dict):
-                    sub = self._deep_search_comments(value)
-                    results.extend(sub)
-                elif isinstance(value, list):
-                    extracted = self._try_extract_from_list(value)
-                    results.extend(extracted)
-
-        return results
-
-    def _try_extract_from_list(self, items):
-        """Tenta extrair dados de comentário de uma lista."""
-        if not isinstance(items, list) or len(items) == 0:
-            return []
-
-        first = items[0] if isinstance(items[0], dict) else None
-        if not first:
-            return []
-
-        # Verifica se o primeiro item parece um comentário
-        indicators = [
-            'text', 'content', 'desc', 'digg_count', 'like_count',
-            'reply_comment_total', 'user'
-        ]
-        indicator_count = sum(1 for key in indicators if key in first)
-
-        if indicator_count < 2:
-            return []
-
-        results = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-
-            text = self._extract_text(item)
-            if not text:
-                continue
-
-            likes = self._extract_numeric_field(
-                item, ['digg_count', 'like_count']
-            )
-            replies = self._extract_numeric_field(
-                item, ['reply_comment_total', 'reply_count']
-            )
-            author = self._extract_author(item)
-
-            results.append({
-                'text': text,
-                'likes': likes,
-                'replies_count': replies,
-                'author': author,
-                'date': str(item.get('create_time', '')) or '',
-            })
-
-        return results
-
-    async def _save_debug_data(self):
-        """Salva dados de debug para troubleshooting."""
-        os.makedirs('data', exist_ok=True)
-
-        if self.comment_responses:
-            with open('data/debug_api_responses.json', 'w', encoding='utf-8') as f:
-                json.dump({
-                    'total_responses': len(self.comment_responses),
-                    'urls': [r['url'] for r in self.comment_responses],
-                    'first_3_previews': [
-                        {
-                            'url': r['url'],
-                            'preview': r.get('body', '')[:2000]
-                        }
-                        for r in self.comment_responses[:3]
-                    ],
-                }, f, ensure_ascii=False, indent=2)
-
-        console.print(
-            "[blue]ℹ️[/blue] Dados de debug salvos em "
-            "data/debug_api_responses.json"
-        )
+    # ------------------------------------------------------------------
+    # Headers
+    # ------------------------------------------------------------------
+    def _build_headers(self) -> Dict[str, str]:
+        """Constrói headers realistas para as requisições."""
+        return {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Referer": "https://www.tiktok.com/",
+            "X-Requested-With": "XMLHttpRequest",
+        }
 
 
-async def scrape_single_url(url):
+# ------------------------------------------------------------------
+# Funções de conveniência (compatíveis com a API existente)
+# ------------------------------------------------------------------
+
+def scrape_single_url(url: str) -> Dict[str, Any]:
     """Scrapes uma única URL."""
-    scraper = TikTokScraper(headless=True)
-    comments, video_info = await scraper.scrape(url)
+    scraper = TikTokScraper()
+    comments, video_info = scraper.scrape(url)
     return {
-        'url': url,
-        'comments': comments or [],
-        'video_info': video_info or {},
-        'success': len(comments) > 0,
+        "url": url,
+        "comments": comments or [],
+        "video_info": video_info or {},
+        "success": len(comments) > 0,
     }
 
 
-async def scrape_multiple_urls(urls):
+def scrape_multiple_urls(urls: List[str]) -> List[Dict[str, Any]]:
     """Scrapes múltiplas URLs."""
     results = []
 
     for i, url in enumerate(urls, 1):
-        console.print(f"\n{'='*50}")
+        console.print(f"\n{'=' * 50}")
         console.print(
             f"[bold blue]📱 Vídeo {i}/{len(urls)}:[/bold blue] {url}"
         )
-        console.print(f"{'='*50}")
+        console.print(f"{'=' * 50}")
 
-        result = await scrape_single_url(url)
+        result = scrape_single_url(url)
         results.append(result)
 
-        if result['success']:
+        if result["success"]:
             console.print(
                 f"[green]✓[/green] Vídeo {i}: "
                 f"{len(result['comments'])} comentários extraídos"
@@ -605,24 +409,24 @@ async def scrape_multiple_urls(urls):
             )
 
         if i < len(urls):
-            await asyncio.sleep(3)
+            time.sleep(3)
 
     return results
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     urls = [
-        'https://www.tiktok.com/@ricaperrone/video/7645152910459915541',
+        "https://www.tiktok.com/@ricaperrone/video/7645152910459915541",
     ]
 
     console.print("[bold blue]🎬 TikTok Comments Scraper[/bold blue]")
-    results = asyncio.run(scrape_multiple_urls(urls))
+    results = scrape_multiple_urls(urls)
 
     for r in results:
-        if r['success']:
+        if r["success"]:
             print(f"\nURL: {r['url']}")
             print(f"Comentários: {len(r['comments'])}")
-            for i, c in enumerate(r['comments'][:5], 1):
+            for i, c in enumerate(r["comments"][:5], 1):
                 print(
                     f"  {i}. [{c.get('author', '?')}] "
                     f"{c['text'][:60]}... (❤️ {c.get('likes', 0)})"
