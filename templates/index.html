@@ -128,6 +128,19 @@
             box-shadow: 0 4px 15px rgba(37, 244, 238, 0.4);
         }
 
+        /* Botão de dados mock */
+        .btn-mock {
+            background: linear-gradient(135deg, var(--accent-purple), #6d28d9);
+            color: white; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap;
+        }
+
+        .btn-mock:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
         .btn-clear {
             background: var(--bg-card); color: var(--text-secondary);
             border: 1px solid var(--border-color); padding: 0.6rem 1rem;
@@ -360,6 +373,8 @@
                       placeholder="Cole as URLs dos vídeos TikTok (uma por linha)&#10;Ex: https://www.tiktok.com/@user/video/xxx"></textarea>
             <div class="btn-group">
                 <button class="btn-scrape" id="scrapeBtn" onclick="startScraping()">🔍 Analisar</button>
+                <!-- Botão de teste com dados mock - sempre visível -->
+                <button class="btn-mock" onclick="loadMockData()">🧪 Testar Mock</button>
                 {% if has_cache %}
                 <button class="btn-load-cache" onclick="loadCachedData()">💾 Carregar Cache</button>
                 <button class="btn-clear" onclick="clearCache()">🗑️ Limpar</button>
@@ -377,7 +392,9 @@
         <p class="welcome-desc">
             Cole uma ou mais URLs de vídeos do TikTok (uma por linha) e clique em "Analisar".<br>
             O sistema fará scraping real dos comentários, realizará análise de sentimento<br>
-            e gerará visualizações completas no dashboard abaixo.
+            e gerará visualizações completas no dashboard abaixo.<br><br>
+            <strong>Dica:</strong> Use o botão 🧪 Testar Mock para ver o dashboard funcionando<br>
+            com dados de exemplo sem precisar do Playwright.
         </p>
     </div>
 </main>
@@ -417,6 +434,25 @@ async function startScraping() {
         showError('Erro de conexão: ' + err.message);
     } finally {
         btn.disabled = false;
+    }
+}
+
+// ============================================
+// Mock Data - Teste rápido sem scraping real
+// ============================================
+async function loadMockData() {
+    showLoading('🧪 Carregando dados mock para teste...');
+    try {
+        const response = await fetch('/api/mock');
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            renderDashboard(result.data);
+        } else {
+            showError(result.message || 'Erro ao carregar dados mock');
+        }
+    } catch (err) {
+        showError('Erro ao carregar dados mock: ' + err.message);
     }
 }
 
