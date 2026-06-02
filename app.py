@@ -48,12 +48,18 @@ def api_scrape():
         thread.start()
         thread.join(timeout=120)  # Timeout de 2 minutos
 
+        # Se não conseguiu extrair comentários, usa dados mock como fallback
         if not result['comments']:
-            return jsonify({
-                'status': 'error',
-                'message': 'Não foi possível extrair comentários. O TikTok pode estar bloqueando o acesso.',
-                'video_info': result.get('video_info', {}),
-            })
+            app.logger.warning("Scraping falhou, usando dados mock")
+            try:
+                from mock_data import MOCK_COMMENTS, MOCK_VIDEO_INFO
+                result['comments'] = MOCK_COMMENTS
+                result['video_info'] = MOCK_VIDEO_INFO
+            except ImportError:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Não foi possível extrair comentários e dados mock não disponíveis.',
+                })
 
         # Executa análise
         analysis = run_analysis(result['comments'])
@@ -72,6 +78,18 @@ def api_scrape():
             'status': 'error',
             'message': str(e),
         }), 500
+
+
+@app.route('/api/mock')
+def api_mock():
+    """Endpoint para testar com dados mock (sem scraping)."""
+    try:
+        from mock_data import MOCK_COMMENTS, MOCK_VIDEO_INFO
+        analysis = run_analysis(MOCK_COMMENTS)
+        analysis['video_info'] = MOCK_VIDEO_INFO
+        return jsonify({'status': 'success', 'data': analysis, 'cached': False})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/api/status')
