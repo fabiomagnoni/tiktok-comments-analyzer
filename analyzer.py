@@ -1,9 +1,10 @@
 """
-Análise de Sentimento e Word Cloud para comentários do TikTok
+Análise de Sentimento e Word Cloud - Suporte a português e inglês
+Gera dados para dashboard com estatísticas completas.
 """
 import os
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import List, Dict, Any
 
 from textblob import TextBlob
@@ -23,7 +24,7 @@ from nltk.tokenize import word_tokenize
 
 from wordcloud import WordCloud
 import matplotlib
-matplotlib.use('Agg')  # Backend não-interativo
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -51,12 +52,14 @@ class SentimentAnalyzer:
     }
 
     def __init__(self):
-        self.stop_words = set(stopwords.words('portuguese')) | set(stopwords.words('english'))
-        # Mantém palavras que podem ser relevantes para análise
-        self.stop_words -= {'não', 'muito', 'mais', 'também', 'já', 'ainda', 'só', 'mas', 'nem'}
+        self.stop_words = (set(stopwords.words('portuguese')) |
+                          set(stopwords.words('english')))
+        self.stop_words -= {
+            'não', 'muito', 'mais', 'também', 'já', 'ainda', 'só', 'mas', 'nem'
+        }
 
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
-        """Analisa o sentimento de um texto. Retorna polarity, label e confidence."""
+        """Analisa o sentimento de um texto."""
         if not text or not text.strip():
             return {'polarity': 0.0, 'label': 'neutral', 'confidence': 0.0}
 
@@ -69,11 +72,9 @@ class SentimentAnalyzer:
         except Exception:
             en_polarity = 0.0
 
-        is_portuguese = self._detect_portuguese(text)
-        if is_portuguese:
-            polarity = pt_score * 0.7 + en_polarity * 0.3
-        else:
-            polarity = en_polarity * 0.7 + pt_score * 0.3
+        is_pt = self._detect_portuguese(text)
+        polarity = (pt_score * 0.7 + en_polarity * 0.3) if is_pt else \
+                   (en_polarity * 0.7 + pt_score * 0.3)
 
         if polarity > 0.15:
             label = 'positive'
@@ -94,27 +95,20 @@ class SentimentAnalyzer:
         text = re.sub(r'@\w+', '', text)
         text = re.sub(r'#', '', text)
         emoji_pattern = re.compile(
-            "["
-            u"\U0001F600-\U0001F64F"  # emoticons
-            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-            u"\U0001F1E0-\U0001F1FF"  # flags
-            u"\U00002702-\U000027B0"
-            u"\U000024C2-\U0001F251"
-            "]+",
-            flags=re.UNICODE,
-        )
+            "[" u"\U0001F600-\U0001F64F" u"\U0001F300-\U0001F5FF"
+            u"\U0001F680-\U0001F6FF" u"\U0001F1E0-\U0001F1FF"
+            u"\U00002702-\U000027B0" u"\U000024C2-\U0001F251" "]+",
+            flags=re.UNICODE)
         text = emoji_pattern.sub('', text)
         text = re.sub(r'[^a-zA-ZÀ-ÿ0-9\s]', ' ', text)
         return text.strip()
 
     def _detect_portuguese(self, text: str) -> bool:
         """Detecta se o texto está em português."""
-        pt_indicators = ['o', 'a', 'de', 'que', 'e', 'em', 'um', 'para', 'com', 'não',
-                        'uma', 'os', 'do', 'das', 'no', 'nos', 'mais', 'pelo', 'pela']
+        pt_indicators = ['o', 'a', 'de', 'que', 'e', 'em', 'um', 'para',
+                        'com', 'não', 'uma', 'os', 'do', 'das', 'no']
         text_lower = text.lower()
-        count = sum(1 for word in pt_indicators if word in text_lower.split())
-        return count >= 2
+        return sum(1 for w in pt_indicators if w in text_lower.split()) >= 2
 
     def _analyze_portuguese(self, text: str) -> float:
         """Analisa sentimento baseado em palavras-chave em português."""
@@ -123,43 +117,33 @@ class SentimentAnalyzer:
         neg_count = sum(1 for w in words if w in self.NEGATIVE_PT)
 
         total = pos_count + neg_count
-        if total == 0:
-            return 0.0
-
-        score = (pos_count - neg_count) / total
-        return score
+        return (pos_count - neg_count) / total if total > 0 else 0.0
 
     def analyze_all(self, comments: List[Dict]) -> Dict[str, Any]:
         """Analisa todos os comentários."""
         results = []
-        sentiment_counts = {'positive': 0, 'negative': 0, 'neutral': 0}
+        counts = {'positive': 0, 'negative': 0, 'neutral': 0}
         total_polarity = 0.0
 
         for comment in comments:
             sentiment = self.analyze_sentiment(comment.get('text', ''))
-            result = {
-                **comment,
-                'sentiment': sentiment['label'],
-                'polarity': sentiment['polarity'],
-                'confidence': sentiment['confidence'],
-            }
+            result = {**comment, **sentiment}
             results.append(result)
-            sentiment_counts[sentiment['label']] += 1
+            counts[sentiment['label']] += 1
             total_polarity += sentiment['polarity']
 
-        avg_polarity = total_polarity / len(comments) if comments else 0.0
-
+        n = len(comments) or 1
         return {
             'comments': results,
             'summary': {
                 'total_comments': len(comments),
-                'positive_count': sentiment_counts['positive'],
-                'negative_count': sentiment_counts['negative'],
-                'neutral_count': sentiment_counts['neutral'],
-                'positive_pct': round(sentiment_counts['positive'] / max(len(comments), 1) * 100, 1),
-                'negative_pct': round(sentiment_counts['negative'] / max(len(comments), 1) * 100, 1),
-                'neutral_pct': round(sentiment_counts['neutral'] / max(len(comments), 1) * 100, 1),
-                'avg_polarity': round(avg_polarity, 4),
+                'positive_count': counts['positive'],
+                'negative_count': counts['negative'],
+                'neutral_count': counts['neutral'],
+                'positive_pct': round(counts['positive'] / n * 100, 1),
+                'negative_pct': round(counts['negative'] / n * 100, 1),
+                'neutral_pct': round(counts['neutral'] / n * 100, 1),
+                'avg_polarity': round(total_polarity / n, 4),
             },
         }
 
@@ -168,14 +152,14 @@ class WordCloudGenerator:
     """Gerador de word cloud a partir dos comentários."""
 
     def __init__(self):
-        self.stop_words = set(stopwords.words('portuguese')) | set(stopwords.words('english'))
-        self.stop_words -= {'não', 'muito', 'mais', 'também', 'já', 'ainda', 'só', 'mas'}
+        self.stop_words = (set(stopwords.words('portuguese')) |
+                          set(stopwords.words('english')))
+        self.stop_words -= {'não', 'muito', 'mais', 'também', 'já', 'ainda'}
         self.stop_words |= {w for w in self.stop_words if len(w) <= 2}
 
     def generate(self, comments: List[Dict], output_path: str = None):
         """Gera word cloud a partir dos comentários."""
         all_text = ' '.join(c.get('text', '') for c in comments if c.get('text'))
-
         if not all_text.strip():
             return None, {}
 
@@ -183,14 +167,9 @@ class WordCloudGenerator:
         clean_text = re.sub(r'@\w+', '', clean_text)
         clean_text = re.sub(r'#', '', clean_text)
         emoji_pattern = re.compile(
-            "["
-            u"\U0001F600-\U0001F64F"
-            u"\U0001F300-\U0001F5FF"
-            u"\U0001F680-\U0001F6FF"
-            u"\U0001F1E0-\U0001F1FF"
-            "]+",
-            flags=re.UNICODE,
-        )
+            "[" u"\U0001F600-\U0001F64F" u"\U0001F300-\U0001F5FF"
+            u"\U0001F680-\U0001F6FF" u"\U0001F1E0-\U0001F1FF" "]+",
+            flags=re.UNICODE)
         clean_text = emoji_pattern.sub('', clean_text)
 
         try:
@@ -198,42 +177,34 @@ class WordCloudGenerator:
         except Exception:
             tokens = clean_text.lower().split()
 
-        filtered_tokens = [
-            t for t in tokens
-            if len(t) > 2 and t not in self.stop_words and t.isalpha()
-        ]
+        filtered = [t for t in tokens if len(t) > 2 and
+                    t not in self.stop_words and t.isalpha()]
 
-        word_freq = Counter(filtered_tokens)
+        word_freq = Counter(filtered)
         top_words = dict(word_freq.most_common(100))
 
         if not top_words:
             return None, {}
 
-        if output_path is None:
-            output_path = 'static/wordcloud.png'
-
+        output_path = output_path or 'static/wordcloud.png'
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
         wordcloud = WordCloud(
-            width=1200,
-            height=600,
-            background_color='#1a1a2e',
-            colormap='viridis',
-            max_words=200,
-            min_font_size=8,
-            max_font_size=120,
-            contour_width=1,
-            contour_color='steelblue',
-            collocations=False,
+            width=1200, height=600, background_color='#1a1a2e',
+            colormap='viridis', max_words=200, min_font_size=8,
+            max_font_size=120, contour_width=1,
+            contour_color='steelblue', collocations=False,
         ).generate_from_frequencies(top_words)
 
         fig, ax = plt.subplots(figsize=(15, 8))
         ax.imshow(wordcloud, interpolation='bilinear')
         ax.axis('off')
-        ax.set_title('Word Cloud - Comentários TikTok', fontsize=20, color='white', pad=20)
+        ax.set_title('Word Cloud - Comentários TikTok', fontsize=20,
+                     color='white', pad=20)
         fig.patch.set_facecolor('#1a1a2e')
         plt.tight_layout()
-        plt.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='#1a1a2e')
+        plt.savefig(output_path, dpi=150, bbox_inches='tight',
+                    facecolor='#1a1a2e')
         plt.close(fig)
 
         return output_path, top_words
@@ -241,17 +212,17 @@ class WordCloudGenerator:
 
 def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
     """Executa toda a análise nos comentários."""
-    # Análise de sentimento
     analyzer = SentimentAnalyzer()
     sentiment_data = analyzer.analyze_all(comments)
 
-    # Word cloud
     wc_generator = WordCloudGenerator()
-    wc_path, top_words = wc_generator.generate(comments)
+    wc_path, _ = wc_generator.generate(comments)
 
-    # Ordena por likes e respostas
-    sorted_by_likes = sorted(sentiment_data['comments'], key=lambda x: x.get('likes', 0), reverse=True)
-    sorted_by_replies = sorted(sentiment_data['comments'], key=lambda x: x.get('replies_count', 0), reverse=True)
+    sorted_by_likes = sorted(
+        sentiment_data['comments'], key=lambda x: x.get('likes', 0), reverse=True)
+    sorted_by_replies = sorted(
+        sentiment_data['comments'], key=lambda x: x.get('replies_count', 0),
+        reverse=True)
 
     # Palavras mais frequentes (top 50)
     all_text = ' '.join(c.get('text', '') for c in comments if c.get('text'))
@@ -261,13 +232,15 @@ def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
         u"\U0001F680-\U0001F6FF" u"\U0001F1E0-\U0001F1FF" "]+", flags=re.UNICODE)
     clean_all = emoji_pattern.sub('', clean_all)
 
-    stop_words_pt_en = set(stopwords.words('portuguese')) | set(stopwords.words('english'))
+    stop_words_pt_en = (set(stopwords.words('portuguese')) |
+                       set(stopwords.words('english')))
     try:
         tokens = word_tokenize(clean_all)
     except Exception:
         tokens = clean_all.split()
 
-    filtered = [t for t in tokens if len(t) > 2 and t not in stop_words_pt_en and t.isalpha()]
+    filtered = [t for t in tokens if len(t) > 2 and
+                t not in stop_words_pt_en and t.isalpha()]
     word_freq = Counter(filtered).most_common(50)
 
     return {
@@ -291,4 +264,41 @@ def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
             'negative': sentiment_data['summary']['negative_pct'],
             'neutral': sentiment_data['summary']['neutral_pct'],
         },
+    }
+
+
+def run_aggregated_analysis(url_results: List[Dict]) -> Dict[str, Any]:
+    """
+    Executa análise agregada em múltiplos vídeos.
+    url_results: lista de dicts com {url, comments, video_info}
+    """
+    # Combina todos os comentários
+    all_comments = []
+    for result in url_results:
+        if result.get('comments'):
+            all_comments.extend(result['comments'])
+
+    if not all_comments:
+        return {'error': 'Nenhum comentário extraído de nenhum vídeo'}
+
+    # Análise agregada
+    aggregated = run_analysis(all_comments)
+
+    # Análise por URL individual
+    per_url = []
+    for result in url_results:
+        comments = result.get('comments', [])
+        if comments:
+            analysis = run_analysis(comments)
+            per_url.append({
+                'url': result['url'],
+                'video_info': result.get('video_info', {}),
+                'summary': analysis['summary'],
+            })
+
+    return {
+        **aggregated,
+        'per_video': per_url,
+        'total_videos': len(url_results),
+        'successful_scrapes': sum(1 for r in url_results if r.get('comments')),
     }
