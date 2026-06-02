@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+static/*.png
+*.log
+.DS_Store
