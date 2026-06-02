@@ -1,7 +1,7 @@
 """
-Flask App - Backend para Dashboard de Análise de Comentários TikTok
-Suporte a múltiplas URLs com scraping real via API web.
-Dados persistidos em JSON local para reutilização.
+Flask App - Backend para Dashboard de Analise de Comentarios TikTok
+Suporte a multiplas URLs com scraping real via API web.
+Dados persistidos em JSON local para reutilizacao.
 Fallback garantido para dados mock quando o scraping falha.
 """
 import os
@@ -16,7 +16,7 @@ from analyzer import run_aggregated_analysis
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
-# Caminho para persistência de dados
+# Caminho para persistencia de dados
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'data'
 )
@@ -46,18 +46,18 @@ def save_results(data):
 
 @app.route('/')
 def index():
-    """Página principal do dashboard."""
+    """Pagina principal do dashboard."""
     cached = load_cached_results()
     return render_template('index.html', has_cache=cached is not None)
 
 
 @app.route('/api/scrape', methods=['POST'])
 def api_scrape():
-    """Endpoint para scraping de múltiplas URLs com análise agregada."""
+    """Endpoint para scraping de multiplas URLs com analise agregada."""
     data = request.get_json() or {}
     urls_raw = data.get('urls', '')
 
-    # Parse das URLs (uma por linha ou separadas por vírgula)
+    # Parse das URLs (uma por linha ou separadas por virgula)
     if isinstance(urls_raw, str):
         urls = [
             u.strip()
@@ -69,7 +69,7 @@ def api_scrape():
     else:
         return jsonify({
             'status': 'error',
-            'message': 'Formato de URLs inválido'
+            'message': 'Formato de URLs invalido'
         }), 400
 
     if not urls:
@@ -92,7 +92,7 @@ def api_scrape():
             # Scraping de todas as URLs (fallback para mock garantido)
             scrape_results = scrape_multiple_urls(unique_urls)
 
-            # Análise agregada
+            # Analise agregada
             analysis = run_aggregated_analysis(scrape_results)
 
             # Adiciona metadados
@@ -114,7 +114,7 @@ def api_scrape():
     result = None
     thread = threading.Thread(target=do_work, daemon=True)
     thread.start()
-    thread.join(timeout=600)  # Timeout de 10 minutos para múltiplas URLs
+    thread.join(timeout=600)  # Timeout de 10 minutos para multiplas URLs
 
     if result is None:
         return jsonify({
@@ -130,7 +130,7 @@ def api_scrape():
 
 @app.route('/api/results')
 def api_results():
-    """Retorna os últimos resultados cacheados."""
+    """Retorna os ultimos resultados cacheados."""
     cached = load_cached_results()
     if cached:
         return jsonify({'status': 'success', 'data': cached})
@@ -162,22 +162,24 @@ def api_mock():
     analysis['urls_scraped'] = [
         'https://www.tiktok.com/@ricaperrone/video/7645152910459915541'
     ]
+    # Inclui video_stats para o dashboard mostrar as estatisticas do video
+    analysis['video_stats'] = MOCK_VIDEO_INFO
 
     return jsonify({'status': 'success', 'data': analysis})
 
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("  🎬 TikTok Comments Analyzer")
+    print("  TikTok Comments Analyzer")
     print("  Dashboard: http://localhost:5000")
     print("=" * 60)
 
-    # Verifica se há dados cacheados
+    # Verifica se ha dados cacheados
     cached = load_cached_results()
     if cached:
         print(
-            f"\n  ℹ️  Dados cacheados encontrados "
-            f"({cached.get('total_comments', 0)} comentários)"
+            f"\n  Dados cacheados encontrados "
+            f"({cached.get('total_comments', 0)} comentarios)"
         )
         print("     Use /api/clear para limpar e fazer novo scraping")
 
