@@ -1,12 +1,11 @@
 """
 Flask App - Backend para Dashboard de Análise de Comentários TikTok
-Suporte a múltiplas URLs com scraping real via Playwright.
+Suporte a múltiplas URLs com scraping real via API web.
 Dados persistidos em JSON local para reutilização.
 Fallback garantido para dados mock quando o scraping falha.
 """
 import os
 import json
-import asyncio
 import threading
 from datetime import datetime
 
@@ -91,7 +90,7 @@ def api_scrape():
         nonlocal result
         try:
             # Scraping de todas as URLs (fallback para mock garantido)
-            scrape_results = asyncio.run(scrape_multiple_urls(unique_urls))
+            scrape_results = scrape_multiple_urls(unique_urls)
 
             # Análise agregada
             analysis = run_aggregated_analysis(scrape_results)
