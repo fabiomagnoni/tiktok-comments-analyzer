@@ -4,7 +4,12 @@ __pycache__/
 .env
 venv/
 .venv/
-data/*.json
+# Dados de runtime (cache, sessões, debug) — não versionar
+data/
 static/*.png
+# Scripts/artefatos temporários de verificação
+_*.py
+_*.js
+_*.png
 *.log
 .DS_Store

@@ -45,6 +45,13 @@ MOCK_COMMENTS = [
     {"text": "Fantastico! Voce e a melhor criadora!", "likes": 95, "replies_count": 2, "author": "carolina_rocha", "date": "3 dias atras"},
     {"text": "Incrivel demais! Conteudo de primeira!", "likes": 87, "replies_count": 1, "author": "matheus_mendes", "date": "4 dias atras"},
     {"text": "Que video bacana! Continue assim!", "likes": 65, "replies_count": 0, "author": "juliana_ferreira", "date": "1 dia atras"},
+
+    # Comentarios com sinais de intencao de compra (PT / EN / ES)
+    {"text": "Quanto custa esse produto? Tem link na bio?", "likes": 312, "replies_count": 14, "author": "compradora_ana", "date": "1 dia atras"},
+    {"text": "Onde comprar? Quero um desses agora!", "likes": 289, "replies_count": 11, "author": "lucas_consumidor", "date": "2 dias atras"},
+    {"text": "Where to buy this? How much is it?", "likes": 201, "replies_count": 8, "author": "global_buyer", "date": "1 dia atras"},
+    {"text": "Cuanto cuesta? Donde lo compro?", "likes": 167, "replies_count": 5, "author": "cliente_es", "date": "3 dias atras"},
+    {"text": "Tem cupom de desconto? Qual o preco com frete?", "likes": 143, "replies_count": 4, "author": "economiza_ja", "date": "2 dias atras"},
 ]
 
 MOCK_VIDEO_INFO = {
@@ -55,4 +62,5 @@ MOCK_VIDEO_INFO = {
     "plays": 1_245_000,
     "title": "Video incrivel sobre culinaria! #receita #cozinha",
     "author_name": "Chef Mock",
+    "author_unique_id": "chef_mock",
 }

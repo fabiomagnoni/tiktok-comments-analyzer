@@ -274,6 +274,26 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
+        /* Word Cloud interativa */
+        .wc-filters { display: inline-flex; gap: 0.4rem; margin-left: auto; flex-wrap: wrap; }
+        .wc-filter {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            color: var(--text-secondary); border-radius: 20px; padding: 0.25rem 0.75rem;
+            font-size: 0.72rem; cursor: pointer; transition: all 0.15s;
+        }
+        .wc-filter:hover { color: var(--text-primary); }
+        .wc-filter.active {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+            color: #fff; border-color: transparent;
+        }
+        .wordcloud-cloud {
+            display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem;
+            align-items: center; justify-content: center; padding: 1.75rem 1rem;
+            line-height: 1.5; min-height: 120px;
+        }
+        .wc-word { font-weight: 700; cursor: default; transition: transform 0.15s, filter 0.15s; }
+        .wc-word:hover { transform: scale(1.15); filter: brightness(1.25); }
+
         /* Comments List */
         .comments-list {
             display: flex; flex-direction: column; gap: 0.75rem;
@@ -330,6 +350,67 @@
         .word-tag:hover { background: var(--bg-card-hover); }
         .word-count { color: var(--accent-cyan); font-weight: 700; font-size: 0.75rem; }
 
+        /* === Video Header (BUG-3) === */
+        .video-header { display:flex; gap:1rem; align-items:center; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); border:1px solid var(--border-color); border-radius:16px; padding:1.5rem; margin-bottom:1.5rem; }
+        .vh-avatar { width:64px; height:64px; border-radius:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:800; background:linear-gradient(135deg,var(--accent-pink),var(--accent-purple)); }
+        .vh-info { flex:1; min-width:0; }
+        .vh-title { font-size:1.3rem; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .vh-handle { color:var(--accent-cyan); font-weight:600; font-size:0.9rem; margin-top:0.25rem; }
+        .vh-chips { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.6rem; }
+        .vh-chip { display:inline-flex; align-items:center; gap:0.35rem; background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:20px; padding:0.3rem 0.8rem; font-size:0.78rem; color:var(--text-secondary); text-decoration:none; }
+        .vh-chip:hover { background:var(--bg-card-hover); color:var(--text-primary); }
+
+        /* === Insights grid + metric hero === */
+        .insights-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; margin-bottom:2rem; }
+        .metric-hero { background:var(--bg-card); border:1px solid var(--border-color); border-radius:16px; padding:1.5rem; display:flex; flex-direction:column; gap:0.5rem; }
+        .metric-value { font-size:2.6rem; font-weight:800; line-height:1; }
+        .metric-sub { font-size:0.78rem; color:var(--text-muted); }
+        .intent-samples { margin-top:0.6rem; display:flex; flex-direction:column; gap:0.4rem; }
+        .intent-sample { background:var(--bg-secondary); border-radius:8px; padding:0.5rem 0.7rem; font-size:0.78rem; color:var(--text-secondary); }
+
+        /* === Brand safety === */
+        .bs-card { align-items:center; text-align:center; }
+        .bs-badge { width:96px; height:96px; border-radius:50%; border:4px solid var(--neutral); display:flex; align-items:center; justify-content:center; font-size:1.8rem; font-weight:800; margin:0.3rem auto; }
+        .bs-badge.safe { border-color:var(--positive); color:var(--positive); }
+        .bs-badge.moderate { border-color:var(--neutral); color:var(--neutral); }
+        .bs-badge.risk { border-color:var(--negative); color:var(--negative); }
+        .bs-label { font-weight:700; margin-top:0.3rem; }
+        .bs-stats { display:flex; gap:1.2rem; justify-content:center; flex-wrap:wrap; margin-top:0.6rem; font-size:0.76rem; color:var(--text-muted); }
+
+        /* === Ad potential (destaque) === */
+        .ad-potential { display:flex; gap:2rem; flex-wrap:wrap; align-items:center; background:linear-gradient(135deg,rgba(254,44,85,0.12),rgba(139,92,246,0.10),rgba(37,244,238,0.12)); border:1px solid var(--accent-purple); border-radius:18px; padding:2rem; margin-bottom:1.5rem; }
+        .ap-score { font-size:3.5rem; font-weight:800; background:linear-gradient(135deg,var(--accent-pink),var(--accent-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; line-height:1; }
+        .ap-grade { display:inline-block; font-size:1.2rem; font-weight:800; border:2px solid var(--accent-cyan); color:var(--accent-cyan); border-radius:10px; padding:0.1rem 0.7rem; margin-left:0.5rem; vertical-align:middle; }
+        .ap-reco { color:var(--text-secondary); max-width:360px; margin-top:0.6rem; line-height:1.5; font-size:0.9rem; }
+        .ap-factors { flex:1; min-width:260px; display:flex; flex-direction:column; gap:0.7rem; }
+        .ap-factor { font-size:0.8rem; }
+        .ap-factor .lbl { display:flex; justify-content:space-between; margin-bottom:0.25rem; color:var(--text-secondary); }
+        .ap-bar { height:8px; background:var(--bg-secondary); border-radius:4px; overflow:hidden; }
+        .ap-bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--accent-pink),var(--accent-cyan)); }
+
+        /* === Thread analyzer === */
+        .thread-list { display:flex; flex-direction:column; gap:0.75rem; max-height:560px; overflow-y:auto; }
+        .thread-item { background:var(--bg-secondary); border-radius:12px; padding:1rem; }
+        .thread-toggle { margin-top:0.5rem; background:none; border:none; color:var(--accent-cyan); cursor:pointer; font-size:0.8rem; font-weight:600; display:inline-flex; align-items:center; gap:0.3rem; padding:0; }
+        .thread-toggle .arw { transition:transform 0.2s; }
+        .thread-toggle.open .arw { transform:rotate(90deg); }
+        .thread-replies { display:none; margin-top:0.6rem; padding-left:1rem; border-left:2px solid var(--accent-purple); flex-direction:column; gap:0.5rem; }
+        .thread-reply { background:var(--bg-card); border-radius:8px; padding:0.6rem 0.8rem; }
+
+        /* === Scope bar + comparison table (multi-video, Fase 5) === */
+        .scope-bar { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:0.75rem 1rem; margin-bottom:1.5rem; }
+        .scope-bar select { background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-primary); padding:0.5rem; border-radius:8px; font-size:0.85rem; outline:none; }
+        .comparison-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+        .comparison-table th { text-align:left; color:var(--text-muted); text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em; padding:0.6rem; border-bottom:1px solid var(--border-color); }
+        .comparison-table td { padding:0.6rem; border-bottom:1px solid var(--border-color); }
+        .comparison-table tr:hover { background:var(--bg-card-hover); cursor:pointer; }
+        .comparison-table .row-active { background:rgba(254,44,85,0.08); }
+        .score-badge { padding:2px 8px; border-radius:6px; font-weight:700; }
+        .score-high { background:rgba(72,187,120,0.2); color:var(--positive); }
+        .score-mid { background:rgba(250,204,21,0.2); color:var(--neutral); }
+        .score-low { background:rgba(252,92,101,0.2); color:var(--negative); }
+        .session-menu { background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-secondary); padding:0.6rem 0.8rem; border-radius:8px; font-size:0.85rem; max-width:200px; }
+
         /* Per-Video Section */
         .per-video-section { margin-bottom: 2rem; }
 
@@ -366,6 +447,8 @@
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .insights-grid { grid-template-columns: 1fr; }
+            .ad-potential { flex-direction: column; align-items: flex-start; }
             .url-textarea { width: 100%; }
         }
     </style>
@@ -391,6 +474,10 @@
                 <button class="btn-scrape" id="scrapeBtn" onclick="startScraping()">Analisar</button>
                 <!-- Botao de teste com dados mock - sempre visivel -->
                 <button class="btn-mock" onclick="loadMockData()">Testar Mock</button>
+                <button class="btn-clear" id="btnCsv" onclick="downloadExport('csv')" disabled>Exportar CSV</button>
+                <button class="btn-clear" id="btnPdf" onclick="downloadExport('pdf')" disabled>Exportar PDF</button>
+                <button class="btn-load-cache" id="btnSaveSession" onclick="saveSession()" disabled>Salvar Sessao</button>
+                <select id="sessionMenu" class="session-menu" onchange="if(this.value)loadSession(this.value)"><option value="">Sessoes salvas...</option></select>
                 {% if has_cache %}
                 <button class="btn-load-cache" onclick="loadCachedData()">Carregar Cache</button>
                 <button class="btn-clear" onclick="clearCache()">Limpar</button>
@@ -427,8 +514,9 @@ let charts = {};
 async function startScraping() {
     const urlsRaw = document.getElementById('urlInput').value.trim();
     if (!urlsRaw) return alert('Por favor, insira pelo menos uma URL do TikTok');
+    window.currentSessionId = null;  // analise nova, nao uma sessao carregada
 
-    showLoading('Iniciando scraping dos videos...');
+    showLoading('Iniciando coleta de comentarios...');
     const btn = document.getElementById('scrapeBtn');
     btn.disabled = true;
 
@@ -438,25 +526,60 @@ async function startScraping() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ urls: urlsRaw }),
         });
-
-        const result = await response.json();
-
-        if (result.status === 'success') {
-            renderDashboard(result.data);
-        } else {
-            showError(result.message || 'Erro ao analisar os videos');
+        const started = await response.json();
+        if (!started.job_id) {
+            showError(started.message || 'Nao foi possivel iniciar a analise');
+            btn.disabled = false;
+            return;
         }
+        pollScrapeStatus(started.job_id, btn);
     } catch (err) {
         showError('Erro de conexao: ' + err.message);
-    } finally {
         btn.disabled = false;
     }
+}
+
+// Faz polling do job de scraping ate concluir, mostrando progresso ao vivo
+function pollScrapeStatus(jobId, btn) {
+    const tick = async () => {
+        try {
+            const r = await fetch('/api/scrape/status?job_id=' + encodeURIComponent(jobId));
+            const j = await r.json();
+            if (j.status === 'running') {
+                const p = j.progress || {};
+                const n = p.total_collected || 0;
+                let label = 'Coletando comentarios do TikTok...';
+                if (p.stage === 'analisando') {
+                    label = 'Analisando sentimento e gerando insights...';
+                } else if (p.stage === 'video_info') {
+                    label = 'Buscando estatisticas do video...';
+                } else if ((p.total_videos || 1) > 1 && p.video_index) {
+                    label = `Video ${p.video_index}/${p.total_videos} — coletando comentarios...`;
+                }
+                const sub = n > 0 ? `${n.toLocaleString('pt-BR')} comentarios coletados`
+                                  : 'Conectando ao TikTok...';
+                showLoading(label, sub);
+                setTimeout(tick, 2000);
+            } else if (j.status === 'done') {
+                renderDashboard(j.data);
+                btn.disabled = false;
+            } else {
+                showError(j.message || 'Erro durante a analise');
+                btn.disabled = false;
+            }
+        } catch (err) {
+            showError('Erro ao consultar status: ' + err.message);
+            btn.disabled = false;
+        }
+    };
+    tick();
 }
 
 // ============================================
 // Mock Data - Teste rapido sem scraping real
 // ============================================
 async function loadMockData() {
+    window.currentSessionId = null;
     showLoading('Carregando dados mock para teste...');
     try {
         const response = await fetch('/api/mock');
@@ -502,15 +625,97 @@ async function clearCache() {
 }
 
 // ============================================
+// Export (CSV/PDF) + Sessoes
+// ============================================
+function setExportEnabled(on) {
+    ['btnCsv', 'btnPdf', 'btnSaveSession'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = !on;
+    });
+}
+
+function downloadExport(kind) {
+    let qs = '';
+    const scope = window.currentScope || 'all';
+    if (scope.startsWith('video:')) qs = '?vid=' + encodeURIComponent(scope.slice(6));
+    if (window.currentSessionId) {
+        qs += (qs ? '&' : '?') + 'session=' + encodeURIComponent(window.currentSessionId);
+    }
+    // Content-Disposition: attachment faz o browser baixar
+    window.location.href = '/api/export/' + kind + qs;
+}
+
+async function saveSession() {
+    const dflt = 'analise ' + new Date().toLocaleDateString('pt-BR');
+    const name = prompt('Nome da sessao:', dflt);
+    if (name === null) return;
+    try {
+        const r = await fetch('/api/sessions/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        const j = await r.json();
+        if (j.status === 'success') {
+            alert('Sessao salva: ' + j.session.name);
+            refreshSessions();
+        } else {
+            alert(j.message || 'Erro ao salvar sessao');
+        }
+    } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+    }
+}
+
+async function refreshSessions() {
+    try {
+        const r = await fetch('/api/sessions');
+        const j = await r.json();
+        const sel = document.getElementById('sessionMenu');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Sessoes salvas...</option>' +
+            (j.sessions || []).map(s =>
+                `<option value="${s.id}">${escapeHtml(s.name)} (${s.total_videos}v, ${s.total_comments} coment.)</option>`
+            ).join('');
+    } catch (err) { /* silencioso */ }
+}
+
+async function loadSession(sessionId) {
+    if (!sessionId) return;
+    showLoading('Carregando sessao salva...');
+    try {
+        const r = await fetch('/api/results?session=' + encodeURIComponent(sessionId));
+        const j = await r.json();
+        if (j.status === 'success') {
+            window.currentSessionId = sessionId;
+            renderDashboard(j.data);
+        } else {
+            showError(j.message || 'Erro ao carregar sessao');
+        }
+    } catch (err) {
+        showError('Erro ao carregar sessao: ' + err.message);
+    }
+}
+
+// ============================================
 // UI States
 // ============================================
-function showLoading(text = 'Scraping comentarios do TikTok...') {
-    document.getElementById('app').innerHTML = `
+function showLoading(text = 'Scraping comentarios do TikTok...', subtext = '') {
+    const app = document.getElementById('app');
+    const existing = app.querySelector('.loading-state');
+    // Atualiza no lugar (mantem o spinner girando sem reiniciar a animacao)
+    if (existing) {
+        existing.querySelector('.loading-text').textContent = text;
+        const sub = existing.querySelector('.loading-sub');
+        if (sub) sub.textContent = subtext || 'Isso pode levar alguns minutos dependendo do volume de comentarios';
+        return;
+    }
+    app.innerHTML = `
         <div class="loading-state">
             <div class="spinner"></div>
             <p class="loading-text">${text}</p>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">
-                Isso pode levar alguns minutos dependendo do numero de videos
+            <p class="loading-sub" style="color: var(--text-muted); font-size: 0.95rem;">
+                ${subtext || 'Isso pode levar alguns minutos dependendo do volume de comentarios'}
             </p>
         </div>`;
 }
@@ -530,7 +735,10 @@ function showError(message) {
 // ============================================
 // Dashboard Rendering
 // ============================================
-function renderDashboard(data) {
+function renderDashboard(data, opts) {
+    opts = opts || {};
+    // Guarda o dataset completo para o filtro multi-video (Fase 5)
+    if (!opts.keepScope) { window.fullData = data; window.currentScope = 'all'; }
     const summary = data.summary || {};
     const topLikes = data.top_comments_by_likes || [];
     const topReplies = data.top_comments_by_replies || [];
@@ -538,6 +746,7 @@ function renderDashboard(data) {
     const wcPath = data.wordcloud_path;
     const perVideo = data.per_video || [];
     const videoStats = data.video_stats || {};
+    const vs = getVideoStatsObj(data);
 
     // Formata numeros grandes (ex: 2453 -> 2.453)
     function fmt(n) {
@@ -546,10 +755,14 @@ function renderDashboard(data) {
     }
 
     let html = `
+        ${renderVideoHeaderCard(vs, data)}
+        ${renderComparisonBlock(data)}
+        ${renderPostPerformanceCard(data)}
+        ${renderInsightsGrid(data, vs)}
         <!-- Stats Cards - Sentimento -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-label">Total de Comentarios</div>
+                <div class="stat-label">Comentarios Analisados</div>
                 <div class="stat-value stat-pink">${fmt(summary.total_comments)}</div>
                 ${data.total_videos > 1 ? `<div class="stat-subtitle">${data.successful_scrapes || 0} de ${data.total_videos} videos com sucesso</div>` : ''}
             </div>
@@ -591,7 +804,7 @@ function renderDashboard(data) {
                     <div class="video-stat-item">
                         <div class="video-stat-icon"></div>
                         <div class="video-stat-value">${fmt(videoStats.comments)}</div>
-                        <div class="video-stat-label">Comentarios</div>
+                        <div class="video-stat-label">Total no TikTok</div>
                     </div>` : ''}
                     ${videoStats.shares !== undefined ? `
                     <div class="video-stat-item">
@@ -628,7 +841,7 @@ function renderDashboard(data) {
                                 <div class="video-stat-item">
                                     <div class="video-stat-icon"></div>
                                     <div class="video-stat-value">${fmt(vs.comments)}</div>
-                                    <div class="video-stat-label">Comentarios</div>
+                                    <div class="video-stat-label">Total no TikTok</div>
                                 </div>` : ''}
                                 ${vs.shares !== undefined ? `
                                 <div class="video-stat-item">
@@ -669,13 +882,32 @@ function renderDashboard(data) {
                 <div class="chart-container"><canvas id="likesBar"></canvas></div>
             </div>
 
-            <!-- Word Cloud -->
-            ${wcPath ? `
+            <!-- Language Breakdown -->
+            ${data.language_breakdown ? `
+            <div class="card">
+                <div class="card-title">Idiomas dos Comentarios</div>
+                <div class="chart-container"><canvas id="languageBar"></canvas></div>
+            </div>` : ''}
+
+            <!-- Topic Clusters -->
+            ${(data.topic_clusters && data.topic_clusters.clusters && data.topic_clusters.clusters.some(c => c.count > 0)) ? `
+            <div class="card">
+                <div class="card-title">Temas dos Comentarios</div>
+                <div class="chart-container"><canvas id="topicPie"></canvas></div>
+            </div>` : ''}
+
+            <!-- Word Cloud Interativa (tamanho = frequência, cor = sentimento) -->
+            ${(data.wordcloud_data && data.wordcloud_data.length) ? `
             <div class="card card-full">
-                <div class="card-title">Word Cloud</div>
-                <div class="wordcloud-container">
-                    <img src="/static/wordcloud.png?${Date.now()}" alt="Word Cloud">
+                <div class="card-title">Nuvem de Palavras
+                    <span class="wc-filters">
+                        <button class="wc-filter active" onclick="filterWordCloud('all', this)">Todas</button>
+                        <button class="wc-filter" onclick="filterWordCloud('positive', this)">Positivas</button>
+                        <button class="wc-filter" onclick="filterWordCloud('negative', this)">Negativas</button>
+                        <button class="wc-filter" onclick="filterWordCloud('neutral', this)">Neutras</button>
+                    </span>
                 </div>
+                <div class="wordcloud-cloud" id="wordcloudCloud"></div>
             </div>` : ''}
 
             <!-- Top Words -->
@@ -699,11 +931,11 @@ function renderDashboard(data) {
                 </div>
             </div>
 
-            <!-- Top Comments by Replies List -->
+            <!-- Thread Analyzer (top por respostas) -->
             <div class="card card-full">
-                <div class="card-title">Comentarios com Mais Respostas</div>
-                <div class="comments-list">
-                    ${topReplies.map(c => renderComment(c, 'replies')).join('')}
+                <div class="card-title">Analisador de Threads (mais comentados)</div>
+                <div class="thread-list">
+                    ${topReplies.map((c, i) => renderThreadItem(c, i)).join('')}
                 </div>
             </div>
         </div>
@@ -734,7 +966,7 @@ function renderDashboard(data) {
                         <div class="video-stat-item">
                             <div class="video-stat-icon"></div>
                             <div class="video-stat-value">${fmt(v.video_info.comments)}</div>
-                            <div class="video-stat-label">Comentarios</div>
+                            <div class="video-stat-label">Total no TikTok</div>
                         </div>` : ''}
                         ${v.video_info.shares !== undefined ? `
                         <div class="video-stat-item">
@@ -757,7 +989,7 @@ function renderDashboard(data) {
                     </div>` : ''}
                     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
                         <div class="stat-card">
-                            <div class="stat-label">Comentarios</div>
+                            <div class="stat-label">Comentarios Analisados</div>
                             <div class="stat-value stat-pink">${fmt(v.summary.total_comments)}</div>
                         </div>
                         <div class="stat-card">
@@ -789,11 +1021,24 @@ function renderDashboard(data) {
     `;
 
     document.getElementById('app').innerHTML = html;
+    setExportEnabled(true);
 
     // Render charts after DOM update - PASSA OS TEXTOS COMO PARAMETRO!
     requestAnimationFrame(() => {
+        // Destroi charts antigos para evitar "Canvas is already in use"
+        // (acontece ao re-renderizar via filtro multi-video sem reload).
+        Object.values(charts).forEach(c => { try { if (c) c.destroy(); } catch (e) {} });
+        charts = {};
         renderSentimentPie(data.sentiment_distribution);
         renderLikesBar(topLikes);  // topLikes ja tem text, author, likes
+        if (data.language_breakdown) renderLanguageBar(data.language_breakdown);
+        if (data.topic_clusters) renderTopicChart(data.topic_clusters);
+        // Word cloud interativa
+        window.wordcloudData = data.wordcloud_data || [];
+        renderWordCloud('all');
+        // Re-seleciona o escopo ativo no dropdown (multi-video)
+        const sel = document.getElementById('scopeFilter');
+        if (sel && window.currentScope) sel.value = window.currentScope;
     });
 }
 
@@ -838,8 +1083,369 @@ function renderComment(c, type) {
 
 function escapeHtml(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = (text === undefined || text === null) ? '' : text;
     return div.innerHTML;
+}
+
+// ============================================
+// Word Cloud interativa (tamanho por frequencia, cor por sentimento, filtros)
+// ============================================
+function renderWordCloud(filter) {
+    const box = document.getElementById('wordcloudCloud');
+    if (!box) return;
+    const all = window.wordcloudData || [];
+    const words = (filter === 'all') ? all : all.filter(w => w.sentiment === filter);
+    if (!words.length) {
+        box.innerHTML = '<p style="color:var(--text-muted)">Nenhuma palavra nessa categoria.</p>';
+        return;
+    }
+    const counts = words.map(w => w.count);
+    const max = Math.max(...counts), min = Math.min(...counts);
+    const colorOf = s => s === 'positive' ? 'var(--positive)'
+        : s === 'negative' ? 'var(--negative)' : 'var(--neutral)';
+    box.innerHTML = words.map(w => {
+        const t = (max === min) ? 0.5 : (w.count - min) / (max - min);
+        const size = (0.9 + Math.sqrt(t) * 2.0).toFixed(2);   // ~0.9rem .. 2.9rem
+        const op = (0.65 + t * 0.35).toFixed(2);
+        const title = `${w.word} — ${w.count}x · ${w.sentiment} (polaridade ${w.polarity})`;
+        return `<span class="wc-word" style="font-size:${size}rem;color:${colorOf(w.sentiment)};opacity:${op}" title="${escapeHtml(title)}">${escapeHtml(w.word)}</span>`;
+    }).join('');
+}
+
+function filterWordCloud(filter, btn) {
+    document.querySelectorAll('.wc-filter').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderWordCloud(filter);
+}
+
+// ============================================
+// Helpers de Insights (CMO) - leem os shapes do backend (insights.py)
+// ============================================
+function fmtCompact(n) {
+    if (n === undefined || n === null || n === '') return '-';
+    n = Number(n);
+    if (isNaN(n)) return '-';
+    if (n >= 1e9) return (n / 1e9).toFixed(1).replace('.', ',') + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1).replace('.', ',') + 'k';
+    return Number(n).toLocaleString('pt-BR');
+}
+
+function getVideoStatsObj(data) {
+    const vs = data.video_stats;
+    if (Array.isArray(vs)) return vs[0] || {};
+    if (vs && typeof vs === 'object') return vs;
+    const pv = (data.per_video || [])[0];
+    return (pv && pv.video_info) || {};
+}
+
+// --- Video header card (BUG-3): so para video unico (nao no agregado multi-video) ---
+function renderVideoHeaderCard(vs, data) {
+    if (Array.isArray(data.video_stats)) return '';
+    if (!vs || (!vs.title && !vs.author_name && !vs.author_unique_id)) return '';
+    const ini = (vs.author_name || vs.author_unique_id || '?').charAt(0).toUpperCase();
+    const url = (data.urls_scraped || [])[0] || '';
+    return `
+    <div class="video-header">
+        <div class="vh-avatar">${escapeHtml(ini)}</div>
+        <div class="vh-info">
+            ${vs.title ? `<div class="vh-title">${escapeHtml(vs.title)}</div>` : ''}
+            <div class="vh-handle">
+                ${vs.author_unique_id ? '@' + escapeHtml(vs.author_unique_id) : ''}
+                ${vs.author_unique_id && vs.author_name ? ' · ' : ''}
+                ${vs.author_name ? escapeHtml(vs.author_name) : ''}
+            </div>
+            <div class="vh-chips">
+                ${url ? `<a class="vh-chip" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir no TikTok</a>` : ''}
+                ${vs.plays !== undefined ? `<span class="vh-chip">${fmtCompact(vs.plays)} views</span>` : ''}
+                ${vs.likes !== undefined ? `<span class="vh-chip">${fmtCompact(vs.likes)} curtidas</span>` : ''}
+            </div>
+        </div>
+    </div>`;
+}
+
+// --- Performance do Post (destaque) - backend: {score,tier,justification,components} ---
+// O post analisado já é uma publi veiculada; medimos seu DESEMPENHO.
+function renderPostPerformanceCard(data) {
+    const ap = data.post_performance;
+    if (!ap || ap.score === undefined || ap.score === null) return '';
+    const grade = ap.score >= 80 ? 'A' : ap.score >= 65 ? 'B' : ap.score >= 50 ? 'C' : ap.score >= 35 ? 'D' : 'F';
+    const comps = ap.components || {};
+    const labels = { engagement: 'Engajamento', sentiment: 'Recepcao (sentimento)', purchase_intent: 'Intencao de Compra', alcance: 'Alcance', brand_safety: 'Brand Safety' };
+    const factors = Object.keys(labels).map(k => {
+        const v = Math.round(comps[k] || 0);
+        return `<div class="ap-factor"><div class="lbl"><span>${labels[k]}</span><span>${v}/100</span></div><div class="ap-bar"><div class="ap-bar-fill" style="width:${v}%"></div></div></div>`;
+    }).join('');
+    return `
+    <div class="ad-potential">
+        <div>
+            <div class="metric-sub" style="text-transform:uppercase;letter-spacing:0.05em;">Performance do Post</div>
+            <div><span class="ap-score">${Math.round(ap.score)}</span><span class="ap-grade">${grade}</span></div>
+            <div class="ap-reco">${escapeHtml(ap.justification || '')}</div>
+        </div>
+        <div class="ap-factors">${factors}</div>
+    </div>`;
+}
+
+function renderInsightsGrid(data, vs) {
+    const cards = [renderEngagementCard(data, vs), renderPurchaseIntentCard(data), renderBrandSafetyBadge(data)].filter(Boolean);
+    if (!cards.length) return '';
+    return `<div class="insights-grid">${cards.join('')}</div>`;
+}
+
+// --- Engagement rate - backend: {rate_pct,tier,tier_label,components} (+ fallback) ---
+function renderEngagementCard(data, vs) {
+    let eng = data.engagement;
+    if (!eng && vs && vs.plays > 0) {
+        const num = (vs.likes || 0) + (vs.comments || 0) + (vs.shares || 0) + (vs.favorites || 0);
+        const r = num / vs.plays * 100;
+        const tier = r < 1 ? 'baixo' : r <= 3 ? 'bom' : 'excelente';
+        eng = { rate_pct: Math.round(r * 100) / 100, tier, tier_label: { baixo: 'Baixo', bom: 'Bom', excelente: 'Excelente' }[tier] };
+    }
+    if (!eng) return '';
+    const tclass = { excelente: 'stat-positive', bom: 'stat-cyan', baixo: 'stat-negative', indisponivel: 'stat-neutral' }[eng.tier] || 'stat-cyan';
+    const bclass = { excelente: 'badge-positive', bom: 'badge-neutral', baixo: 'badge-negative', indisponivel: 'badge-neutral' }[eng.tier] || 'badge-neutral';
+    return `
+    <div class="metric-hero">
+        <div class="metric-sub" style="text-transform:uppercase;letter-spacing:0.05em;">Taxa de Engajamento</div>
+        <div class="metric-value ${tclass}">${eng.tier === 'indisponivel' ? '-' : eng.rate_pct.toFixed(2) + '%'}</div>
+        <div><span class="sentiment-badge ${bclass}">${eng.tier_label || '-'}</span></div>
+        <div class="metric-sub">(likes+coment+shares+favoritos) / views · benchmark TikTok: &lt;1% baixo · 1-3% bom · &gt;3% excelente</div>
+    </div>`;
+}
+
+// --- Purchase intent - backend: {intent_pct,intent_count,total_analyzed,examples[]} ---
+function renderPurchaseIntentCard(data) {
+    const pi = data.purchase_intent;
+    if (!pi) return '';
+    const pct = pi.intent_pct || 0;
+    const tclass = pct >= 15 ? 'stat-positive' : pct >= 5 ? 'stat-cyan' : 'stat-neutral';
+    const level = pct >= 15 ? 'Alto' : pct >= 5 ? 'Medio' : 'Baixo';
+    const examples = (pi.examples || []).slice(0, 3).map(e =>
+        `<div class="intent-sample"><b>@${escapeHtml(e.author || '?')}</b> "${escapeHtml((e.text || '').substring(0, 90))}" <span class="word-count">${escapeHtml(e.matched_keyword || '')}</span></div>`).join('');
+    return `
+    <div class="metric-hero">
+        <div class="metric-sub" style="text-transform:uppercase;letter-spacing:0.05em;">Intencao de Compra</div>
+        <div class="metric-value ${tclass}">${pct}%</div>
+        <div class="metric-sub">${pi.intent_count || 0} de ${pi.total_analyzed || 0} comentarios com sinais de compra · ${level}</div>
+        ${examples ? `<div class="intent-samples">${examples}</div>` : `<div class="metric-sub">Nenhum sinal explicito detectado</div>`}
+    </div>`;
+}
+
+// --- Brand safety - backend: {score,tier(verde/amarelo/vermelho),breakdown} ---
+function renderBrandSafetyBadge(data) {
+    const bs = data.brand_safety;
+    if (!bs || bs.score === undefined || bs.score === null) return '';
+    const cls = { verde: 'safe', amarelo: 'moderate', vermelho: 'risk' }[bs.tier] || 'moderate';
+    const label = { verde: 'Seguro p/ Marca', amarelo: 'Atencao', vermelho: 'Risco' }[bs.tier] || '-';
+    const lblClass = cls === 'safe' ? 'stat-positive' : cls === 'risk' ? 'stat-negative' : 'stat-neutral';
+    const b = bs.breakdown || {};
+    return `
+    <div class="metric-hero bs-card">
+        <div class="metric-sub" style="text-transform:uppercase;letter-spacing:0.05em;">Brand Safety</div>
+        <div class="bs-badge ${cls}">${Math.round(bs.score)}</div>
+        <div class="bs-label ${lblClass}">${label}</div>
+        <div class="bs-stats">
+            <span>Toxicidade ${b.toxicity_pct !== undefined ? b.toxicity_pct + '%' : '-'}</span>
+            <span>Spam ${b.spam_pct !== undefined ? b.spam_pct + '%' : '-'}</span>
+            <span>Autores unicos ${b.unique_authors !== undefined ? b.unique_authors : '-'}</span>
+        </div>
+    </div>`;
+}
+
+// --- Thread analyzer (top por respostas; expande replies se o backend enviar) ---
+function renderThreadItem(c, idx) {
+    const sc = c.sentiment === 'positive' ? 'badge-positive' : c.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
+    const ini = (c.author || '?').charAt(0).toUpperCase();
+    const reps = Array.isArray(c.replies) ? c.replies : [];
+    const repsHtml = reps.map(r => {
+        const rsc = r.sentiment === 'positive' ? 'badge-positive' : r.sentiment === 'negative' ? 'badge-negative' : 'badge-neutral';
+        return `<div class="thread-reply"><div class="comment-author">@${escapeHtml(r.author || 'desconhecido')}</div><div class="comment-text">${escapeHtml(r.text || '')}</div><div class="comment-meta"><span>Likes: ${r.likes || 0}</span><span class="sentiment-badge ${rsc}">${r.sentiment || 'neutral'}</span></div></div>`;
+    }).join('');
+    return `<div class="thread-item"><div class="comment-item" style="background:transparent;padding:0;"><div class="comment-avatar">${escapeHtml(ini)}</div><div class="comment-body"><div class="comment-author">@${escapeHtml(c.author || 'desconhecido')}</div><div class="comment-text">${escapeHtml(c.text || '')}</div><div class="comment-meta"><span>Respostas: ${c.replies_count || 0}</span><span class="sentiment-badge ${sc}">${c.sentiment || 'neutral'}</span></div>${reps.length ? `<button class="thread-toggle" id="threadToggle${idx}" onclick="toggleThreadReplies(${idx})"><span class="arw">&#9656;</span> Ver ${reps.length} respostas</button>` : ''}</div></div>${reps.length ? `<div class="thread-replies" id="threadReplies${idx}">${repsHtml}</div>` : ''}</div>`;
+}
+
+function toggleThreadReplies(idx) {
+    const box = document.getElementById('threadReplies' + idx);
+    const btn = document.getElementById('threadToggle' + idx);
+    if (!box) return;
+    const open = box.style.display === 'flex';
+    box.style.display = open ? 'none' : 'flex';
+    if (btn) { btn.classList.toggle('open', !open); btn.innerHTML = `<span class="arw">&#9656;</span> ${open ? 'Ver' : 'Ocultar'} respostas`; }
+}
+
+// --- Charts novos ---
+function renderLanguageBar(lb) {
+    const ctx = document.getElementById('languageBar');
+    if (!ctx || !lb) return;
+    const order = ['pt', 'en', 'es', 'other'];
+    const LABELS = { pt: 'Portugues', en: 'Ingles', es: 'Espanhol', other: 'Outros' };
+    const COLORS = { pt: '#fe2c55', en: '#25f4ee', es: '#8b5cf6', other: '#718096' };
+    const dist = lb.distribution || {};
+    const counts = lb.counts || {};
+    const rows = order.filter(k => (dist[k] || 0) > 0);
+    if (!rows.length) return;
+    charts.languageBar = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: rows.map(k => LABELS[k]), datasets: [{ label: '%', data: rows.map(k => dist[k]), backgroundColor: rows.map(k => COLORS[k]), borderRadius: 6, borderSkipped: false }] },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { backgroundColor: '#1a1a2e', titleColor: '#fff', bodyColor: '#a0aec0', borderColor: '#2d3748', borderWidth: 1, callbacks: { label: c => ` ${c.parsed.x}% (${counts[rows[c.dataIndex]] || 0} coment.)` } }
+            },
+            scales: { x: { grid: { color: '#2d3748' }, ticks: { color: '#a0aec0', callback: v => v + '%' } }, y: { grid: { display: false }, ticks: { color: '#a0aec0', font: { weight: 'bold' } } } }
+        }
+    });
+}
+
+function renderTopicChart(tc) {
+    const ctx = document.getElementById('topicPie');
+    if (!ctx || !tc || !tc.clusters) return;
+    const cl = tc.clusters.filter(c => c.count > 0);
+    if (!cl.length) return;
+    const PALETTE = ['#fe2c55', '#25f4ee', '#8b5cf6', '#48bb78', '#facc15', '#fc5c65'];
+    charts.topicPie = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: cl.map(c => c.name), datasets: [{ data: cl.map(c => c.count), backgroundColor: cl.map((c, i) => PALETTE[i % PALETTE.length]), borderColor: '#16213e', borderWidth: 3 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '55%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#a0aec0', padding: 12, font: { size: 11 } } },
+                tooltip: { backgroundColor: '#1a1a2e', titleColor: '#fff', bodyColor: '#a0aec0', borderColor: '#2d3748', borderWidth: 1, callbacks: { label: c => ` ${c.parsed} coment. (${cl[c.dataIndex].pct}%)` } }
+            }
+        }
+    });
+}
+
+// ============================================
+// Multi-video: filtro de escopo + tabela de comparacao
+// ============================================
+function renderComparisonBlock(data) {
+    const full = window.fullData || data;
+    const pv = full.per_video || [];
+    if (pv.length <= 1) return '';
+    const rows = [...pv].sort((a, b) => ((b.post_performance || {}).score || 0) - ((a.post_performance || {}).score || 0));
+    const scoreCls = v => v >= 70 ? 'score-high' : v >= 40 ? 'score-mid' : 'score-low';
+    const trunc = (s, n) => (s || '').length > n ? (s || '').substring(0, n) + '…' : (s || '');
+    const tableRows = rows.map((p, i) => {
+        const vi = p.video_info || {};
+        const aps = (p.post_performance || {}).score;
+        const eng = (p.engagement || {}).rate_pct;
+        const bs = (p.brand_safety || {}).score;
+        return `<tr onclick="applyScope('video:${p.vid}')" data-vid="${p.vid}">
+            <td>${i + 1}</td>
+            <td>@${escapeHtml(vi.author_unique_id || '?')}</td>
+            <td>${escapeHtml(trunc(vi.title, 40))}</td>
+            <td>${fmtCompact(vi.plays)}</td>
+            <td>${fmtCompact(vi.likes)}</td>
+            <td>${eng !== undefined && eng !== null ? eng + '%' : '-'}</td>
+            <td>${aps !== undefined ? `<span class="score-badge ${scoreCls(aps)}">${Math.round(aps)}</span>` : '-'}</td>
+            <td>${bs !== undefined ? `<span class="score-badge ${scoreCls(bs)}">${Math.round(bs)}</span>` : '-'}</td>
+        </tr>`;
+    }).join('');
+    return `
+    <div class="scope-bar">
+        <span>Filtrar dashboard:</span>
+        ${buildScopeOptions(full)}
+        <button class="btn-clear" onclick="applyScope('all')">Limpar filtro</button>
+    </div>
+    <div class="card card-full" style="margin-bottom:1.5rem;">
+        <div class="card-title">Comparacao de Videos (ranking por desempenho do post)</div>
+        <div style="overflow-x:auto;">
+        <table class="comparison-table">
+            <thead><tr><th>#</th><th>Criador</th><th>Titulo</th><th>Views</th><th>Likes</th><th>Eng.</th><th>Perf.</th><th>Brand</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+        </table>
+        </div>
+    </div>`;
+}
+
+function buildScopeOptions(full) {
+    const pv = full.per_video || [];
+    const creators = full.creators || [];
+    let opts = `<option value="all">Todos os videos</option>`;
+    creators.filter(c => c.video_count > 1).forEach(c => {
+        opts += `<option value="creator:${c.author_unique_id}">Criador @${c.author_unique_id} (${c.video_count} videos)</option>`;
+    });
+    const vidOpts = pv.map(p => {
+        const vi = p.video_info || {};
+        return `<option value="video:${p.vid}">@${vi.author_unique_id || '?'} - ${escapeHtml((vi.title || p.url || '').substring(0, 30))}</option>`;
+    }).join('');
+    return `<select id="scopeFilter" onchange="applyScope(this.value)">${opts}<optgroup label="Videos">${vidOpts}</optgroup></select>`;
+}
+
+function applyScope(val) {
+    window.currentScope = val;
+    const full = window.fullData;
+    if (!full) return;
+    let scoped;
+    if (val === 'all') {
+        scoped = full;
+    } else if (val.startsWith('video:')) {
+        const vid = val.slice(6);
+        const p = (full.per_video || []).find(v => String(v.vid) === vid);
+        scoped = p ? {
+            summary: p.summary, top_comments_by_likes: p.top_comments_by_likes,
+            top_comments_by_replies: p.top_comments_by_replies, top_words: p.top_words,
+            sentiment_distribution: p.sentiment_distribution, wordcloud_path: p.wordcloud_path,
+            wordcloud_data: p.wordcloud_data,
+            video_stats: p.video_info, purchase_intent: p.purchase_intent,
+            language_breakdown: p.language_breakdown, topic_clusters: p.topic_clusters,
+            brand_safety: p.brand_safety, engagement: p.engagement, post_performance: p.post_performance,
+            per_video: full.per_video, creators: full.creators, total_videos: full.total_videos,
+            urls_scraped: [p.url], scraped_at: full.scraped_at, _scoped: true
+        } : full;
+    } else if (val.startsWith('creator:')) {
+        const uid = val.slice(8);
+        const subset = (full.per_video || []).filter(v => ((v.video_info || {}).author_unique_id || '') === uid);
+        scoped = aggregateClientSide(subset, full);
+    }
+    renderDashboard(scoped, { keepScope: true });
+}
+
+function aggregateClientSide(subset, full) {
+    if (!subset.length) return full;
+    let tc = 0, pos = 0, neg = 0, neu = 0, polSum = 0;
+    const likes = [], replies = [], words = {};
+    subset.forEach(p => {
+        const s = p.summary || {};
+        tc += s.total_comments || 0; pos += s.positive_count || 0;
+        neg += s.negative_count || 0; neu += s.neutral_count || 0;
+        polSum += (s.avg_polarity || 0) * (s.total_comments || 0);
+        (p.top_comments_by_likes || []).forEach(c => likes.push(c));
+        (p.top_comments_by_replies || []).forEach(c => replies.push(c));
+        (p.top_words || []).forEach(w => { words[w.word] = (words[w.word] || 0) + w.count; });
+    });
+    const n = tc || 1;
+    likes.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    replies.sort((a, b) => (b.replies_count || 0) - (a.replies_count || 0));
+    const topWords = Object.entries(words).map(([word, count]) => ({ word, count })).sort((a, b) => b.count - a.count).slice(0, 40);
+    // Mescla wordcloud_data dos videos do criador (sentimento do maior count vence)
+    const wcMap = {};
+    subset.forEach(p => (p.wordcloud_data || []).forEach(w => {
+        const e = wcMap[w.word] || { word: w.word, count: 0, sentiment: w.sentiment, polarity: w.polarity, _best: 0 };
+        e.count += w.count;
+        if (w.count > e._best) { e._best = w.count; e.sentiment = w.sentiment; e.polarity = w.polarity; }
+        wcMap[w.word] = e;
+    }));
+    const wcData = Object.values(wcMap).sort((a, b) => b.count - a.count).slice(0, 80)
+        .map(e => ({ word: e.word, count: e.count, sentiment: e.sentiment, polarity: e.polarity }));
+    const summary = {
+        total_comments: tc, positive_count: pos, negative_count: neg, neutral_count: neu,
+        positive_pct: Math.round(pos / n * 1000) / 10, negative_pct: Math.round(neg / n * 1000) / 10,
+        neutral_pct: Math.round(neu / n * 1000) / 10, avg_polarity: Math.round(polSum / n * 10000) / 10000
+    };
+    return {
+        summary,
+        sentiment_distribution: { positive: summary.positive_pct, negative: summary.negative_pct, neutral: summary.neutral_pct },
+        top_comments_by_likes: likes.slice(0, 20), top_comments_by_replies: replies.slice(0, 20),
+        top_words: topWords, wordcloud_path: subset[0].wordcloud_path, wordcloud_data: wcData,
+        video_stats: subset.map(p => p.video_info), per_video: subset, creators: full.creators,
+        purchase_intent: null, language_breakdown: null, topic_clusters: null,
+        brand_safety: subset[0].brand_safety, engagement: null, post_performance: null,
+        total_videos: subset.length, scraped_at: full.scraped_at, _scoped: true
+    };
 }
 
 // ============================================
@@ -934,6 +1540,8 @@ function renderLikesBar(topComments) {
 // Init - Auto-load cached data if available
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Popula o dropdown de sessoes salvas
+    refreshSessions();
     // Se ha dados cacheados, carrega automaticamente
     {% if has_cache %}
     loadCachedData();

@@ -27,6 +27,13 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+# Insights de marketing (CMO): engajamento, intencao de compra, idioma,
+# topicos, brand safety e score composto de potencial publicitario.
+from insights import (
+    engagement_rate, purchase_intent, language_breakdown,
+    topic_clusters, brand_safety_score, post_performance_score,
+)
+
 
 class SentimentAnalyzer:
     """Analisador de sentimento com suporte a português e inglês."""
@@ -210,13 +217,19 @@ class WordCloudGenerator:
         return output_path, top_words
 
 
-def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
-    """Executa toda a análise nos comentários."""
+def run_analysis(comments: List[Dict], video_info: Dict = None,
+                 output_path: str = None) -> Dict[str, Any]:
+    """Executa toda a análise nos comentários.
+
+    video_info: estatísticas do vídeo (likes/plays/...) para calcular
+        engagement rate e ad potential score. Se None, esses campos vêm None.
+    output_path: caminho da word cloud (permite uma imagem por vídeo).
+    """
     analyzer = SentimentAnalyzer()
     sentiment_data = analyzer.analyze_all(comments)
 
     wc_generator = WordCloudGenerator()
-    wc_path, _ = wc_generator.generate(comments)
+    wc_path, _ = wc_generator.generate(comments, output_path=output_path)
 
     sorted_by_likes = sorted(
         sentiment_data['comments'], key=lambda x: x.get('likes', 0), reverse=True)
@@ -241,10 +254,50 @@ def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
 
     filtered = [t for t in tokens if len(t) > 2 and
                 t not in stop_words_pt_en and t.isalpha()]
-    word_freq = Counter(filtered).most_common(50)
+    word_freq = Counter(filtered).most_common(80)
+
+    # --- Word cloud interativa: sentimento agregado por palavra ---
+    # Para cada palavra do topo, media da polaridade dos comentarios que a contem.
+    top_words_list = [w for w, _ in word_freq]
+    top_set = set(top_words_list)
+    acc = {w: [0.0, 0] for w in top_set}  # palavra -> [soma_polaridade, n]
+    if top_set:
+        for c in sentiment_data['comments']:
+            pol = c.get('polarity', 0) or 0
+            toks = set(re.findall(r'[a-zà-ÿ]+', (c.get('text', '') or '').lower()))
+            for w in toks & top_set:
+                acc[w][0] += pol
+                acc[w][1] += 1
+    freq_map = dict(word_freq)
+    wordcloud_data = []
+    for w in top_words_list:
+        s, n = acc[w]
+        avg = (s / n) if n else 0.0
+        label = ('positive' if avg > 0.15
+                 else 'negative' if avg < -0.15 else 'neutral')
+        wordcloud_data.append({'word': w, 'count': freq_map.get(w, 0),
+                               'sentiment': label, 'polarity': round(avg, 3)})
+
+    summary = sentiment_data['summary']
+
+    # --- Insights de marketing (insights.py) ---
+    pi = purchase_intent(comments)
+    lang = language_breakdown(comments)
+    topics = topic_clusters(comments)
+    bs = brand_safety_score(comments, summary)
+    eng = engagement_rate(video_info) if video_info else None
+    perf = (post_performance_score(eng or {}, bs, pi, summary, video_info)
+            if video_info else None)
 
     return {
-        'summary': sentiment_data['summary'],
+        'summary': summary,
+        'purchase_intent': pi,
+        'language_breakdown': lang,
+        'topic_clusters': topics,
+        'brand_safety': bs,
+        'engagement': eng,
+        'post_performance': perf,
+        'wordcloud_data': wordcloud_data,
         'top_comments_by_likes': [
             {'text': c.get('text', ''), 'author': c.get('author', ''),
              'likes': c.get('likes', 0), 'sentiment': c.get('label', 'neutral'),
@@ -267,10 +320,21 @@ def run_analysis(comments: List[Dict]) -> Dict[str, Any]:
     }
 
 
+def _vid_from_url(url: str, idx: int) -> str:
+    """ID estável do vídeo, derivado de /video/<id> (ou 'v<idx>' de fallback)."""
+    m = re.search(r'/video/(\d+)', url or '')
+    return m.group(1) if m else f'v{idx}'
+
+
 def run_aggregated_analysis(url_results: List[Dict]) -> Dict[str, Any]:
     """
     Executa análise agregada em múltiplos vídeos.
     url_results: lista de dicts com {url, comments, video_info}
+
+    Cada item de per_video carrega blocos completos (top comments, word cloud,
+    distribuições) + métricas para o CMO (engagement, brand safety, APS) para
+    permitir filtro/comparação no front. raw_results é enriquecido com
+    sentiment/polarity por comentário (usado no export CSV).
     """
     # Combina todos os comentários
     all_comments = []
@@ -281,31 +345,78 @@ def run_aggregated_analysis(url_results: List[Dict]) -> Dict[str, Any]:
     if not all_comments:
         return {'error': 'Nenhum comentário extraído de nenhum vídeo'}
 
-    # Análise agregada
-    aggregated = run_analysis(all_comments)
-
     # Coleta video_info de todos os vídeos
-    all_video_info = []
-    for result in url_results:
-        vi = result.get('video_info', {})
-        if vi:
-            all_video_info.append(vi)
+    all_video_info = [r.get('video_info', {}) for r in url_results
+                      if r.get('video_info')]
+    # engagement/APS no agregado só fazem sentido com 1 vídeo
+    single_vi = all_video_info[0] if len(all_video_info) == 1 else None
 
-    # Análise por URL individual
+    # Análise agregada (passa video_info único quando há só 1 vídeo)
+    aggregated = run_analysis(all_comments, video_info=single_vi)
+
+    # Análise por vídeo (cada um com blocos completos + métricas CMO)
     per_url = []
-    for result in url_results:
+    for idx, result in enumerate(url_results):
         comments = result.get('comments', [])
-        if comments:
-            analysis = run_analysis(comments)
-            per_url.append({
-                'url': result['url'],
-                'video_info': result.get('video_info', {}),
-                'summary': analysis['summary'],
-            })
+        if not comments:
+            continue
+        vid = _vid_from_url(result.get('url', ''), idx)
+        vinfo = result.get('video_info', {}) or {}
+        analysis = run_analysis(comments, video_info=vinfo,
+                                output_path=f'static/wordcloud_{vid}.png')
+        per_url.append({
+            'vid': vid,
+            'url': result.get('url', ''),
+            'video_info': vinfo,
+            'summary': analysis['summary'],
+            'top_comments_by_likes': analysis['top_comments_by_likes'],
+            'top_comments_by_replies': analysis['top_comments_by_replies'],
+            'top_words': analysis['top_words'],
+            'sentiment_distribution': analysis['sentiment_distribution'],
+            'wordcloud_path': analysis['wordcloud_path'],
+            'wordcloud_data': analysis['wordcloud_data'],
+            'purchase_intent': analysis['purchase_intent'],
+            'language_breakdown': analysis['language_breakdown'],
+            'topic_clusters': analysis['topic_clusters'],
+            'brand_safety': analysis['brand_safety'],
+            'engagement': analysis['engagement'],
+            'post_performance': analysis['post_performance'],
+        })
+
+    # Agregado por criador (para o filtro por @username)
+    cmap = defaultdict(lambda: {'author_unique_id': '', 'author_name': '',
+                                'video_count': 0, 'vids': [],
+                                'total_comments': 0, '_aps_sum': 0.0})
+    for pv in per_url:
+        uid = (pv['video_info'].get('author_unique_id') or '').strip()
+        if not uid:
+            continue
+        e = cmap[uid]
+        e['author_unique_id'] = uid
+        e['author_name'] = pv['video_info'].get('author_name', '')
+        e['video_count'] += 1
+        e['vids'].append(pv['vid'])
+        e['total_comments'] += pv['summary'].get('total_comments', 0)
+        e['_aps_sum'] += (pv.get('post_performance') or {}).get('score', 0) or 0
+    creators = []
+    for e in cmap.values():
+        vc = e['video_count'] or 1
+        creators.append({k: v for k, v in e.items() if k != '_aps_sum'} |
+                        {'avg_aps': round(e['_aps_sum'] / vc, 1)})
+
+    # Enriquece raw_results (sentiment/polarity por comentário) para o CSV
+    enricher = SentimentAnalyzer()
+    for result in url_results:
+        if result.get('comments'):
+            enriched = enricher.analyze_all(result['comments'])['comments']
+            for c in enriched:
+                c['sentiment'] = c.pop('label', 'neutral')
+            result['comments'] = enriched
 
     return {
         **aggregated,
         'per_video': per_url,
+        'creators': creators,
         'total_videos': len(url_results),
         'successful_scrapes': sum(1 for r in url_results if r.get('comments')),
         # Inclui video_info para o dashboard mostrar stats do vídeo

@@ -24,11 +24,21 @@ class TikTokScraper:
         self.video_info: Dict[str, Any] = {}
         self._cookies_set = False
         self._video_url: str = ""  # URL real do video para HTML extraction
+        self._progress_cb = None   # callback opcional de progresso
 
-    def scrape(self, url: str) -> tuple:
+    def _report(self, info: Dict[str, Any]):
+        """Reporta progresso ao callback (se houver), de forma resiliente."""
+        if self._progress_cb:
+            try:
+                self._progress_cb(info)
+            except Exception:
+                pass
+
+    def scrape(self, url: str, progress_cb=None) -> tuple:
         """Scrapes comentarios de uma URL do TikTok."""
         self.comments = []
         self.video_info = {}
+        self._progress_cb = progress_cb
 
         try:
             console.print(f"[blue]🌐[/blue] Acessando: {url}")
@@ -48,6 +58,11 @@ class TikTokScraper:
             # Buscar informacoes do video
             self._get_video_info(video_id)
 
+            # BUG-3: usa o username da URL como fallback quando a API nao
+            # retorna o handle (@). O embed v2 nao expoe author_unique_id.
+            if username and not self.video_info.get("author_unique_id"):
+                self.video_info["author_unique_id"] = username
+
             # Buscar todos os comentarios com paginacao
             top_comments = self._fetch_all_top_comments(video_id)
             console.print(f"[blue]📄[/blue] {len(top_comments)} comentarios de nivel 1")
@@ -64,6 +79,10 @@ class TikTokScraper:
                         console.print(f"[blue]💬[/blue] Comentario {i+1}: {len(replies)} respostas extraidas")
                     except Exception as e:
                         console.print(f"[yellow]⚠[/yellow] Erro ao buscar replies do comentario {i+1}: {e}")
+                # Reporta progresso periodicamente durante a coleta de respostas
+                if (i + 1) % 10 == 0:
+                    self._report({"stage": "replies", "collected": len(all_comments),
+                                  "top_done": i + 1, "top_total": len(top_comments)})
 
             # Limpa campos internos antes de retornar
             for c in all_comments:
@@ -136,7 +155,13 @@ class TikTokScraper:
         # Roda sempre para tentar completar campos faltantes
         self._try_html_extraction(video_id)
         # Estrategia embed v2 - confiavel mesmo quando TikTok bloqueia!
-        if not self.video_info.get("likes") or not self.video_info.get("plays"):
+        # BUG-2: roda tambem quando favorites (collectCount) esta ausente.
+        # O embed v2 e a unica fonte confiavel desse campo, que e numerador
+        # do engagement rate. Sem isso, favorites fica None quando likes/plays
+        # ja foram preenchidos por outra estrategia.
+        if (not self.video_info.get("likes")
+                or not self.video_info.get("plays")
+                or not self.video_info.get("favorites")):
             self._try_embed_v2(video_id)
         if self.video_info:
             console.print(f"[blue]📊[/blue] Stats obtidas: {self.video_info}")
@@ -262,22 +287,34 @@ class TikTokScraper:
             html = resp.text
 
             def parse_count(text):
-                """Converte '14.4K' -> 14400, '2.3M' -> 2300000."""
+                """Converte contagens do TikTok em int.
+
+                Suporta PT-BR '13.600.000'/'66.451' (ponto = separador de milhar)
+                e EN '14.4K'/'2.3M'/'1.2B' (sufixo de escala, ponto/virgula = decimal).
+
+                BUG-4: a ordem e critica. Detecta o sufixo de escala ANTES de
+                remover pontos; caso contrario '14.4K' viraria '144K' (10x maior).
+                """
                 if not text:
                     return None
-                text = text.strip().replace('.', '')
-                try:
-                    return int(text)
-                except ValueError:
-                    pass
-                mult = {'k': 1000, 'm': 1_000_000, 'b': 1_000_000_000}
-                upper = text.upper()
+                s = text.strip().lower()
+                if not s:
+                    return None
+                # 'mil' antes de 'm' para nao confundir o sufixo PT
+                mult = {'b': 1_000_000_000, 'mil': 1_000,
+                        'm': 1_000_000, 'k': 1_000}
+                # 1) COM sufixo de escala: ponto/virgula = separador decimal
                 for suffix, factor in mult.items():
-                    if upper.endswith(suffix):
+                    if s.endswith(suffix):
+                        num = s[:-len(suffix)].strip().replace(',', '.')
                         try:
-                            return int(float(upper[:-1]) * factor)
+                            return int(round(float(num) * factor))
                         except ValueError:
-                            pass
+                            return None
+                # 2) SEM sufixo: numero puro PT-BR (ponto/virgula/espaco = milhar)
+                digits = re.sub(r'[.,\s]', '', s)
+                if digits.isdigit():
+                    return int(digits)
                 return None
 
             # Visualizacoes (data-e2e="video-views")
@@ -320,22 +357,50 @@ class TikTokScraper:
         except Exception as e:
             console.print(f"[yellow]⚠[/yellow] HTML extraction falhou: {e}")
 
-    def _fetch_all_top_comments(self, video_id: str) -> List[Dict[str, Any]]:
-        """Busca todos os comentarios de nivel 1 com paginacao."""
+    def _fetch_all_top_comments(self, video_id: str, count: int = 50,
+                                max_pages: int = 2000) -> List[Dict[str, Any]]:
+        """Busca TODOS os comentarios de nivel 1 com paginacao.
+
+        Sem cap fixo de paginas (apenas um teto de seguranca). Avanca pelo
+        cursor retornado pela API (evita drift de cursor que perderia comentarios
+        quando uma pagina tem itens sem texto). Reporta progresso ao callback.
+        """
         all_comments = []
         cursor = 0
-        for page in range(50):
+        empty_pages = 0
+        for page in range(max_pages):
             try:
-                comments_page = self._fetch_comment_page(video_id, cursor)
-                if not comments_page:
-                    break
+                comments_page = self._fetch_comment_page(video_id, cursor, count)
+                data = getattr(self, "_last_response", {}) or {}
+                raw_list = data.get("comments", []) or data.get("comment_list", []) or []
+                raw_count = len(raw_list)
+
                 all_comments.extend(comments_page)
-                console.print(f"[blue]📄[/blue] Pagina {page + 1}: {len(comments_page)} comentarios (total nivel 1: {len(all_comments)})")
-                has_more = self._check_has_more()
-                if not has_more:
+                console.print(f"[blue]📄[/blue] Pagina {page + 1}: +{len(comments_page)} "
+                              f"(bruto {raw_count}) | total nivel 1: {len(all_comments)}")
+                self._report({"stage": "comments", "collected": len(all_comments),
+                              "page": page + 1})
+
+                # Para se a pagina veio vazia algumas vezes seguidas
+                if raw_count == 0:
+                    empty_pages += 1
+                    if empty_pages >= 2:
+                        break
+                else:
+                    empty_pages = 0
+
+                if not self._check_has_more():
                     break
-                cursor += len(comments_page)
-                time.sleep(1.5)
+
+                # Avanca pelo cursor da API quando disponivel (evita drift)
+                next_cursor = data.get("cursor") or data.get("next_cursor") or 0
+                try:
+                    next_cursor = int(next_cursor)
+                except (ValueError, TypeError):
+                    next_cursor = 0
+                cursor = next_cursor if next_cursor > cursor else cursor + (raw_count or count)
+
+                time.sleep(1.0)
             except Exception as e:
                 console.print(f"[red]✗[/red] Erro na pagina {page + 1}: {e}")
                 if page == 0:
@@ -368,17 +433,18 @@ class TikTokScraper:
         except Exception:
             return False
 
-    def _fetch_comment_page(self, video_id: str, cursor: int) -> List[Dict[str, Any]]:
-        """Busca uma pagina de comentarios."""
+    def _fetch_comment_page(self, video_id: str, cursor: int,
+                            count: int = 50) -> List[Dict[str, Any]]:
+        """Busca uma pagina de comentarios (count itens por pagina)."""
         headers = self._build_headers()
         url = (f"https://www.tiktok.com/api/comment/list/online/"
-               f"?aid=1988&aweme_id={video_id}&count=30"
+               f"?aid=1988&aweme_id={video_id}&count={count}"
                f"&cursor={cursor}&item_id={video_id}"
                f"&insert_ids=&isswitch=1&list_type=&need_preview_list=0")
         resp = self.session.get(url, headers=headers, timeout=20)
         if resp.status_code != 200:
             url_alt = (f"https://www.tiktok.com/api/comment/list/"
-                       f"?aid=1988&aweme_id={video_id}&count=30"
+                       f"?aid=1988&aweme_id={video_id}&count={count}"
                        f"&cursor={cursor}")
             resp = self.session.get(url_alt, headers=headers, timeout=20)
         if resp.status_code != 200:
@@ -400,12 +466,12 @@ class TikTokScraper:
         """Busca as respostas de um comentario especifico."""
         all_replies = []
         cursor = 0
-        for page in range(20):
+        for page in range(40):
             try:
                 headers = self._build_headers()
                 url = (f"https://www.tiktok.com/api/comment/list/reply/"
                        f"?aid=1988&comment_id={comment_id}"
-                       f"&count=30&cursor={cursor}&item_id={video_id}")
+                       f"&count=50&cursor={cursor}&item_id={video_id}")
                 resp = self.session.get(url, headers=headers, timeout=20)
                 if resp.status_code != 200:
                     break
@@ -422,7 +488,7 @@ class TikTokScraper:
                 if not has_more or not reply_list:
                     break
                 cursor += len(reply_list)
-                time.sleep(0.8)
+                time.sleep(0.5)
             except Exception as e:
                 console.print(f"[yellow]⚠[/yellow] Erro ao buscar replies (pagina {page + 1}): {e}")
                 break
@@ -529,27 +595,46 @@ class TikTokScraper:
         }
 
 
-def scrape_single_url(url: str) -> Dict[str, Any]:
+def scrape_single_url(url: str, progress_cb=None) -> Dict[str, Any]:
     """Scrapes uma unica URL."""
     scraper = TikTokScraper()
-    comments, video_info = scraper.scrape(url)
+    comments, video_info = scraper.scrape(url, progress_cb=progress_cb)
     return {"url": url, "comments": comments or [], "video_info": video_info or {}, "success": len(comments) > 0}
 
 
-def scrape_multiple_urls(urls: List[str]) -> List[Dict[str, Any]]:
-    """Scrapes multiplas URLs."""
+def scrape_multiple_urls(urls: List[str], progress_cb=None) -> List[Dict[str, Any]]:
+    """Scrapes multiplas URLs.
+
+    progress_cb(info) recebe dicts de progresso. Para multiplos videos, o total
+    acumulado (done_base + coletados no video atual) e exposto como 'total_collected'.
+    """
     results = []
+    done_base = 0
+    total = len(urls)
     for i, url in enumerate(urls, 1):
         console.print(f"\n{'=' * 50}")
-        console.print(f"[bold blue]📱 Video {i}/{len(urls)}:[/bold blue] {url}")
+        console.print(f"[bold blue]📱 Video {i}/{total}:[/bold blue] {url}")
         console.print(f"{'=' * 50}")
-        result = scrape_single_url(url)
+
+        def cb(info, _i=i, _base=done_base):
+            info = dict(info)
+            info["video_index"] = _i
+            info["total_videos"] = total
+            info["total_collected"] = _base + info.get("collected", 0)
+            if progress_cb:
+                progress_cb(info)
+
+        result = scrape_single_url(url, progress_cb=cb)
         results.append(result)
+        done_base += len(result["comments"])
         if result["success"]:
             console.print(f"[green]✓[/green] Video {i}: {len(result['comments'])} comentarios extraidos")
         else:
             console.print(f"[red]✗[/red] Video {i}: falha ao extrair comentarios")
-        if i < len(urls):
+        if progress_cb:
+            progress_cb({"stage": "video_done", "video_index": i, "total_videos": total,
+                         "total_collected": done_base})
+        if i < total:
             time.sleep(3)
     return results
 
